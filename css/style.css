@@ -12,6 +12,7 @@
   --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   --border-radius: 8px;
   --main-pc-color: #C74900;
+  
 }
 
 * {
@@ -25,14 +26,13 @@ body, html {
   background-color: var(--main-bg-color);
   color: var(--text-color);
   min-height: 100vh;
-  overflow: hidden; /* Adicionado para evitar rolagem no corpo da página em desktop */
 }
 
-/* -------------------- ESTILOS PADRÃO (para Desktop) -------------------- */
+/* -------------------- ESTILOS EXCLUSIVOS PARA MOBILE -------------------- */
 .main-container {
   display: flex;
-  flex-direction: row;
-  height: 100vh;
+  flex-direction: column;
+  min-height: 100vh;
 }
 
 /* Header */
@@ -40,7 +40,7 @@ body, html {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px 40px;
+  padding: 15px;
   background-color: var(--header-bg-color);
   color: white;
   box-shadow: var(--shadow);
@@ -53,11 +53,16 @@ body, html {
   display: flex;
   align-items: center;
   width: 100%;
-  max-width: 600px;
 }
 
 .menu-button {
-  display: none; /* Escondido em desktop */
+  display: block;
+  font-size: 24px;
+  cursor: pointer;
+  color: white;
+  border: none;
+  background: none;
+  margin-right: 15px;
 }
 
 .search-container {
@@ -83,24 +88,47 @@ body, html {
 }
 
 .search-icon {
-  margin-right: 10px;
+  margin-left: 10px;
   color: #aeb4b8;
 }
 
 .header-title {
-  margin-right: 20px;
-  font-size: 20px;
+  display: none;
 }
 
-/* Sidebar para desktop */
+/* Sidebar */
 .sidebar {
   background-color: #2C2C2C;
   width: 250px;
   padding: 20px 0;
   box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+  position: fixed;
+  top: 0;
+  left: -250px;
+  height: 100%;
+  transition: left 0.3s ease-in-out;
+  z-index: 200;
   display: flex;
   flex-direction: column;
-  flex-shrink: 0;
+}
+
+.sidebar.open {
+  left: 0;
+}
+
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 150;
+  display: none;
+}
+
+.overlay.show {
+  display: block;
 }
 
 .category-list {
@@ -138,13 +166,13 @@ body, html {
   color: white;
 }
 
-/* Conteúdo principal para desktop */
+/* Conteúdo principal */
 .main-content-wrapper {
-  flex-grow: 1;
   display: flex;
-  flex-direction: row;
-  height: 100vh;
-  padding: 20px;
+  flex-direction: column;
+  flex-grow: 1;
+  height: calc(100vh - 170px);
+  padding: 10px;
 }
 
 .product-section {
@@ -154,25 +182,21 @@ body, html {
 
 .product-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 15px;
+  grid-template-columns: 1fr;
+  gap: 10px;
 }
 
-/* Sumário do carrinho para desktop */
+/* Sumário do carrinho */
 .comanda-summary {
   background-color: var(--card-bg-color);
   padding: 15px;
-  box-shadow: var(--shadow);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  align-items: stretch;
-  position: static;
+  box-shadow: 0 -4px 6px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  bottom: 0;
   z-index: 90;
-  margin-left: 20px;
-  min-width: 300px;
-  max-height: 200px;
-  border-radius: var(--border-radius);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .summary-info {
@@ -200,95 +224,12 @@ body, html {
   text-decoration: none;
   font-weight: bold;
   transition: background-color 0.2s;
-  text-align: center;
 }
 
 .troco-button:hover {
   background-color: var(--highlight-color);
 }
 
-/* -------------------- ESTILOS EXCLUSIVOS PARA MOBILE -------------------- */
-@media (max-width: 767px) {
-  .main-container {
-    flex-direction: column;
-    min-height: 100vh;
-    overflow-y: hidden;
-  }
-  
-  .main-header {
-    flex-direction: row;
-    justify-content: space-between;
-    padding: 15px;
-  }
-  
-  .header-content {
-    flex-grow: 1;
-    margin-left: 15px;
-  }
-
-  .menu-button {
-    display: block; /* Mostra o botão de menu em mobile */
-  }
-
-  .header-title {
-    display: none; /* Esconde o título em mobile */
-  }
-
-  .sidebar {
-    width: 250px;
-    padding: 20px;
-    position: fixed;
-    top: 0;
-    left: -250px;
-    height: 100%;
-    transition: left 0.3s ease-in-out;
-    z-index: 200;
-  }
-  
-  .sidebar.open {
-    left: 0;
-  }
-
-  .overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-    z-index: 150;
-    display: none;
-  }
-  
-  .overlay.show {
-    display: block;
-  }
-  
-  .main-content-wrapper {
-    flex-direction: column;
-    height: calc(100vh - 170px);
-    padding: 10px;
-  }
-
-  .product-section {
-    flex-grow: 1;
-    overflow-y: auto; /* Permite scroll no conteúdo em mobile */
-  }
-  
-  .product-grid {
-    grid-template-columns: 1fr; /* Uma única coluna */
-    gap: 10px;
-  }
-  
-  .comanda-summary {
-    position: sticky;
-    bottom: 0;
-    z-index: 90;
-    margin-top: 0;
-    margin-left: 0;
-    border-radius: 0;
-  }
-}
 
 /* Demais estilos da aplicação (não afetados) */
 .product-card {
