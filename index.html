@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comanda Digital</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="main-container">
+        <header class="main-header">
+            <div class="header-content">
+                <button class="menu-button" id="menu-button">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="search-container">
+                    <input type="text" id="search-bar" placeholder="Buscar no menu...">
+                    <i class="fas fa-search search-icon"></i>
+                </div>
+            </div>
+        </header>
+
+        <main class="content-wrapper">
+            <aside class="sidebar" id="sidebar">
+                <div class="category-list">
+                    <button class="category-item active" data-category="Todos">
+                        <i class="fas fa-utensils category-icon"></i>
+                        <span class="category-text">Todos</span>
+                    </button>
+                    <button class="category-item" data-category="Salgados">
+                        <i class="fas fa-pizza-slice category-icon"></i>
+                        <span class="category-text">Salgados</span>
+                    </button>
+                    <button class="category-item" data-category="Doces">
+                        <i class="fas fa-cookie-bite category-icon"></i>
+                        <span class="category-text">Doces</span>
+                    </button>
+                    <button class="category-item" data-category="Bebidas">
+                        <i class="fas fa-glass-martini-alt category-icon"></i>
+                        <span class="category-text">Bebidas</span>
+                    </button>
+                </div>
+            </aside>
+            <div class="overlay" id="overlay"></div>
+
+            <section class="main-section">
+                <div class="product-grid" id="product-grid">
+                    </div>
+                
+                <div class="comanda-summary" id="comanda-summary">
+                    <div class="summary-list" id="summary-list">
+                        </div>
+
+                    <div class="summary-footer">
+                        <div class="summary-info">
+                            <span class="summary-text">TOTAL:</span>
+                            <span class="summary-price" id="total-price">R$ 0,00</span>
+                        </div>
+                        <a href="troco.html" class="troco-button" id="troco-button" style="display: none;">
+                            Calcular Troco
+                        </a>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div class="notes-modal" id="notes-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Anotações</h3>
+                <span class="close-button" id="close-modal-button">&times;</span>
+            </div>
+            <textarea id="notes-textarea" placeholder="Adicionar anotações..."></textarea>
+            <button id="save-notes-button">Salvar Anotação</button>
+        </div>
+    </div>
+
+    <script src="js/script.js"></script>
+</body>
+</html>

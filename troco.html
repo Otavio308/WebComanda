@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calcular Troco</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+</head>
+<body>
+
+    <header class="troco-header">
+        <a href="index.html" class="back-button"><i class="fas fa-arrow-left"></i></a>
+        <h1 class="header-title">Calcular Troco</h1>
+    </header>
+
+    <main class="troco-main-container">
+        <div class="troco-card">
+            <h2 class="card-title">Detalhes da Conta</h2>
+            <div class="info-row">
+                <span class="info-label">Total a Pagar:</span>
+                <span id="total-da-conta" class="info-value"></span>
+            </div>
+
+            <div class="input-section">
+                <label for="valor-pago" class="input-label">Valor Recebido:</label>
+                <input type="number" id="valor-pago" class="input-field" placeholder="0,00" step="0.01">
+            </div>
+
+            <div class="button-section">
+                <button id="calcular-button" class="action-button">Calcular Troco</button>
+                <button id="limpar-button" class="action-button clear-button">Limpar</button>
+            </div>
+
+            <div class="resultado-section">
+                <h3 class="resultado-label">Troco:</h3>
+                <p id="resultado-troco" class="resultado-value"></p>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/troco.js"></script>
+    
+</body>
+</html>
