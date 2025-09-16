@@ -908,14 +908,40 @@ body, html {
     height: auto;
     position: relative;
   }
+  /* Sidebar mais estreita no mobile */
+  .sidebar {
+    width: 70px;
+    min-width: 60px;
+    padding: 10px 0;
+  }
+  .category-list {
+    padding: 0 6px;
+  }
+  .category-item {
+    padding: 10px 6px;
+    justify-content: center;
+  }
+  .category-text {
+    display: none; /* Só ícone no mobile para economizar espaço */
+  }
+
+  /* Produtos: container com box-shadow e espaçamento */
+  .product-card {
+    width: 95%;
+    min-width: 0;
+    margin: 0 auto 12px auto;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.10), 0 1.5px 4px rgba(0,0,0,0.08);
+    border-radius: var(--border-radius);
+    background: var(--card-bg-color);
+  }
+
+  /* Área de rolagem dos produtos */
   .product-list-scroll {
     max-height: 400px; /* Ajuste para mobile */
     padding-bottom: 170px; /* Espaço para o sumário fixo */
   }
-  .product-card {
-    width: 100%;
-    min-width: 0;
-  }
+
+  /* Sumário fixo, mas não cobre a tela toda */
   .comanda-summary {
     position: fixed;
     left: 0;
@@ -928,9 +954,9 @@ body, html {
     border-radius: 16px 16px 0 0;
     padding: 20px 10px 20px 10px;
     height: auto;
-    max-height: 60vh;
+    max-height: 55vh; /* Limite máximo do sumário */
     overflow-y: auto;
-    /* Para não cobrir o header */
     top: unset;
+    /* Evita cobrir a tela toda mesmo com muitos itens */
   }
 }
