@@ -115,8 +115,17 @@ body, html {
   background-color: #2C2C2C;
   width: 250px;
   padding: 20px 0;
+  /* Remova as linhas abaixo: */
+  /* box-shadow: 2px 0 5px rgba(0,0,0,0.1); */
+  /* position: fixed; */
+  /* top: 0; */
+  /* left: -250px; */
+  /* height: 100%; */
+  /* transition: left 0.3s ease-in-out; */
+  /* z-index: 200; */
   display: flex;
   flex-direction: column;
+  /* Adicione: */
   position: relative;
   left: 0;
   height: auto;
@@ -124,23 +133,8 @@ body, html {
   z-index: 1;
 }
 
-/* Remova ou comente estas regras para a sidebar mobile */
-/*.sidebar {
-  background-color: #2C2C2C;
-  width: 250px;
-  padding: 20px 0;
-  box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-  position: fixed;
-  top: 0;
-  left: -250px;
-  height: 100%;
-  transition: left 0.3s ease-in-out;
-  z-index: 200;
-  display: flex;
-  flex-direction: column;
-}
-
-.sidebar.open {
+/* Remova a classe que abre a sidebar */
+/*.sidebar.open {
   left: 0;
 }*/
 
@@ -156,6 +150,7 @@ body, html {
 }
 
 /* Remova o overlay do mobile */
+.overlay,
 .overlay.show {
   display: none !important;
 }
