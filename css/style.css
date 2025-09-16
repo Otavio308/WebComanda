@@ -108,9 +108,24 @@ body, html {
 .content-wrapper {
   display: flex;
   flex-grow: 1;
+  height: calc(100vh - 70px); /* Ajuste conforme altura do header */
 }
 
 .sidebar {
+  background-color: #2C2C2C;
+  width: 250px;
+  padding: 20px 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  left: 0;
+  height: auto;
+  box-shadow: none;
+  z-index: 1;
+}
+
+/* Remova ou comente estas regras para a sidebar mobile */
+/*.sidebar {
   background-color: #2C2C2C;
   width: 250px;
   padding: 20px 0;
@@ -127,7 +142,7 @@ body, html {
 
 .sidebar.open {
   left: 0;
-}
+}*/
 
 .overlay {
   position: fixed;
@@ -140,8 +155,9 @@ body, html {
   display: none;
 }
 
+/* Remova o overlay do mobile */
 .overlay.show {
-  display: block;
+  display: none !important;
 }
 
 .category-list {
@@ -180,27 +196,30 @@ body, html {
 
 .main-section {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   flex-grow: 1;
-  padding: 20px;
+  gap: 30px;
+  padding: 30px;
+  height: 100%;
+  overflow: hidden;
+}
+
+.product-list-scroll {
+  flex-grow: 1;
+  overflow-y: auto;
+  max-height: calc(100vh - 40px); /* Ajuste conforme o header */
+  padding-right: 10px;
 }
 
 .product-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  display: flex;
+  flex-direction: column;
   gap: 15px;
-  flex-grow: 1;
 }
 
 .product-card {
-  background-color: var(--card-bg-color);
-  border-radius: var(--border-radius);
-  box-shadow: var(--shadow);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  text-align: center;
-  cursor: pointer;
+  width: 320px;      /* Tamanho fixo */
+  margin: 0 auto;    /* Centraliza na área de rolagem */
 }
 
 .product-image {
@@ -254,6 +273,11 @@ body, html {
   box-shadow: var(--shadow);
   border-radius: var(--border-radius);
   margin-top: 20px;
+  position: sticky;
+  top: 100px; /* Ajuste conforme header */
+  width: 350px;
+  height: fit-content;
+  flex-shrink: 0;
 }
 
 .summary-list {
@@ -646,4 +670,26 @@ body, html {
    .troco-header .back-button {
         left: 40px;
     }
+}
+
+/* Responsivo para mobile */
+@media (max-width: 767px) {
+  .main-section {
+    flex-direction: column;
+    gap: 20px;
+    padding: 10px;
+    height: auto;
+  }
+  .product-list-scroll {
+    max-height: 400px; /* Ajuste para mobile */
+  }
+  .product-card {
+    width: 100%;
+    min-width: 0;
+  }
+  .comanda-summary {
+    position: static;
+    width: 100%;
+    margin-top: 20px;
+  }
 }
