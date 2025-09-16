@@ -290,6 +290,64 @@ body, html {
   box-shadow: var(--shadow);
   border-radius: var(--border-radius);
   margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Limite e rolagem apenas na lista de itens do sumário */
+.comanda-summary {
+  display: flex;
+  flex-direction: column;
+}
+
+/* DESKTOP */
+@media (min-width: 768px) {
+  .comanda-summary {
+    position: sticky;
+    top: 100px;
+    width: 350px;
+    height: auto;
+    max-height: 70vh;
+    overflow: visible; /* Importante: não rola o sumário inteiro */
+    flex-shrink: 0;
+    background-color: var(--card-bg-color);
+    padding: 20px;
+    box-shadow: var(--shadow);
+    border-radius: var(--border-radius);
+    margin-top: 20px;
+  }
+  .summary-list {
+    max-height: 45vh; /* Limite para a lista de itens */
+    overflow-y: auto;
+    margin-bottom: 10px;
+  }
+}
+
+/* MOBILE */
+@media (max-width: 767px) {
+  .comanda-summary {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    width: 100vw;
+    margin: 0;
+    z-index: 999;
+    background: var(--card-bg-color);
+    box-shadow: 0 -2px 12px rgba(0,0,0,0.15);
+    border-radius: 16px 16px 0 0;
+    padding: 20px 10px 20px 10px;
+    height: auto;
+    max-height: 55vh;
+    overflow: visible; /* Importante: não rola o sumário inteiro */
+    top: unset;
+    display: flex;
+    flex-direction: column;
+  }
+  .summary-list {
+    max-height: 28vh; /* Limite para a lista de itens no mobile */
+    overflow-y: auto;
+    margin-bottom: 10px;
+  }
 }
 
 .summary-list {
@@ -884,19 +942,21 @@ body, html {
     flex-grow: 1;
   }
 
+  /* Sumário com altura máxima e rolagem independente no desktop */
   .comanda-summary {
     position: sticky;
     top: 100px; /* Ajuste para ficar abaixo do header */
     width: 350px;
-    height: fit-content;
+    height: auto;
+    max-height: 70vh; /* Limite máximo do sumário no desktop */
+    overflow-y: auto;
     flex-shrink: 0;
+    background-color: var(--card-bg-color);
+    padding: 20px;
+    box-shadow: var(--shadow);
+    border-radius: var(--border-radius);
+    margin-top: 20px;
   }
-   .troco-header {
-        padding: 15px 40px;
-    }
-   .troco-header .back-button {
-        left: 40px;
-    }
 }
 
 /* Responsivo para mobile */
@@ -955,8 +1015,14 @@ body, html {
     padding: 20px 10px 20px 10px;
     height: auto;
     max-height: 55vh; /* Limite máximo do sumário */
-    overflow-y: auto;
+    overflow: visible; /* Importante: não rola o sumário inteiro */
     top: unset;
-    /* Evita cobrir a tela toda mesmo com muitos itens */
+    display: flex;
+    flex-direction: column;
+  }
+  .summary-list {
+    max-height: 28vh; /* Limite para a lista de itens no mobile */
+    overflow-y: auto;
+    margin-bottom: 10px;
   }
 }
