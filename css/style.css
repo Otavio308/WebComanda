@@ -1017,6 +1017,13 @@ body, html {
     background: var(--card-bg-color);
   }
 
+  .product-image, .product-icon-container {
+    width: 100%;
+    height: 180px;
+    border-top-left-radius: var(--border-radius);
+    border-top-right-radius: var(--border-radius);
+  }
+
   /* Área de rolagem dos produtos */
   .product-list-scroll {
     max-height: 400px; /* Ajuste para mobile */
