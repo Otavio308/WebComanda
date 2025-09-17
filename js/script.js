@@ -2,13 +2,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // Dados de produtos
     const products = [
         { id: 1, name: 'Pão Francês', price: 0.50, category: 'Salgados', image: 'https://redemix.vteximg.com.br/arquivos/ids/214544-1000-1000/6914.jpg?v=638351307421600000' },
-        { id: 2, name: 'Bolo de Chocolate', price: 15.00, category: 'Doces', image: 'https://www.receiteria.com.br/wp-content/uploads/bolo-de-chocolate-perfeito.jpg' },
-        { id: 3, name: 'Croissant', price: 4.50, category: 'Salgados', image: 'https://cdn.pixabay.com/photo/2017/01/16/16/09/croissant-1984627_1280.jpg' },
-        { id: 4, name: 'Torta de Frango', price: 8.00, category: 'Salgados', image: 'https://s2.glbimg.com/Qk9sI3XqVz-7r1h1JvP8M_dI50A=/e.glbimg.com/og/ed/f/original/2019/04/23/torta-de-frango-com-catupiry-receita.jpg' },
-        { id: 5, name: 'Café Expresso', price: 3.00, category: 'Bebidas', image: 'https://www.thespruceeats.com/thmb/9m7gW9XyU5Q6-5545X2u-W-n4-k=/1500x0/filters:no_upscale():max_bytes(150000):strip_icc()/GettyImages-1004845014-5b72a08346e0fb00259e2182.jpg' },
-        { id: 6, name: 'Suco de Laranja', price: 6.50, category: 'Bebidas', image: 'https://static.itdg.com.br/images/1200-675/7b7f58a786372138a067e2a969343763/328229-original.jpg' },
-        { id: 7, name: 'Brigadeiro', price: 2.50, category: 'Doces', image: 'https://img.itdg.com.br/tdg/images/recipes/000/100/989/322986/322986_original.jpg' },
-        { id: 8, name: 'Baguete', price: 5.50, category: 'Salgados', image: 'https://img.freepik.com/fotos-gratis/vista-lateral-da-baguete-com-sementes-de-gergelim-na-tabela-de-servico_141793-1323.jpg' },
+        { id: 2, name: 'Bolo de Chocolate', price: 15.00, category: 'Doces', image: 'assets/bolo.png' },
+        { id: 3, name: 'Croissant', price: 4.50, category: 'Salgados',},
+        { id: 4, name: 'Torta de Frango', price: 8.00, category: 'Salgados', },
+        { id: 5, name: 'Café Expresso', price: 3.00, category: 'Bebidas', },
+        { id: 6, name: 'Suco de Laranja', price: 6.50, category: 'Bebidas', },
+        { id: 7, name: 'Brigadeiro', price: 2.50, category: 'Doces' },
+        { id: 8, name: 'Baguete', price: 5.50, category: 'Salgados' },
         { id: 9, name: 'Torta de Limão', price: 12.00, category: 'Doces' }, // Item sem imagem
         { id: 10, name: 'Refrigerante', price: 7.00, category: 'Bebidas' } // Item sem imagem
     ];
