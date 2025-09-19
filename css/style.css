@@ -626,7 +626,7 @@ body, html {
 .notes-modal {
   display: none;
   position: fixed;
-  z-index: 250;
+  z-index: 2000; /* Maior que o sumário */
   left: 0;
   top: 0;
   width: 100%;
