@@ -68,6 +68,17 @@ body, html {
   cursor: pointer;
 }
 
+/* Remover completamente o menu-button do layout */
+.menu-button {
+  display: none !important;
+  visibility: hidden !important;
+  width: 0 !important;
+  height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+}
+
 .search-container {
   flex-grow: 1;
   display: flex;
@@ -1053,6 +1064,34 @@ body, html {
   background: #f39c12;
   color: #fff;
 }
+.table-number-container {
+    display: flex;
+    align-items: center;
+    background-color: #ffffff; /* Fundo branco para destaque */
+    border-radius: var(--border-radius);
+    padding: 5px 10px;
+    margin-right: 10px; /* Espaçamento da busca */
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    white-space: nowrap; /* Impede que quebre a linha */
+}
+
+.table-number-label {
+    color: var(--text-color);
+    font-weight: bold;
+    font-size: 14px;
+    margin-right: 5px;
+}
+
+.table-number-input {
+    width: 40px; /* Largura fixa para o número */
+    border: none;
+    outline: none;
+    text-align: center;
+    font-size: 16px;
+    font-weight: bold;
+    color: var(--accent-color); /* Cor de destaque */
+    padding: 0;
+}
 
 /* Responsividade para telas maiores (Notebooks) */
 @media (min-width: 768px) {
@@ -1119,6 +1158,12 @@ body, html {
     border-radius: var(--border-radius);
     margin-top: 20px;
   }
+   .header-content {
+        justify-content: flex-start; 
+    }
+    .table-number-container {
+        margin-right: 20px;
+    }
 }
 
 /* Responsivo para mobile */

@@ -20,8 +20,12 @@ document.addEventListener('DOMContentLoaded', () => {
         'Bebidas': 'fas fa-glass-martini-alt',
         'Todos': 'fas fa-utensils'
     };
+    
+    // Constantes do Local Storage
+    const LOCAL_STORAGE_KEY_COMANDA = 'comanda';
+    const LOCAL_STORAGE_KEY_MESA = 'comandaMesa'; // NOVA CHAVE PARA O NÚMERO DA MESA
 
-    let comandaItems = JSON.parse(localStorage.getItem('comanda')) || [];
+    let comandaItems = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY_COMANDA)) || [];
     let modalTargetId = null;
 
     // Elementos do DOM
@@ -39,10 +43,33 @@ document.addEventListener('DOMContentLoaded', () => {
     const notesTextarea = document.getElementById('notes-textarea');
     const saveNotesButton = document.getElementById('save-notes-button');
     const closeModalButton = document.getElementById('close-modal-button');
+    const tableNumberInput = document.getElementById('table-number'); // NOVO ELEMENTO DA MESA
 
     // Funções
-    const formatPrice = (price) => `R$ ${price.toFixed(2).replace('.', ',')}`;
 
+    // NOVO: Função para salvar o número da mesa
+    const saveMesaNumber = () => {
+        if (tableNumberInput) {
+            const mesa = tableNumberInput.value.trim();
+            if (mesa) {
+                localStorage.setItem(LOCAL_STORAGE_KEY_MESA, mesa);
+            } else {
+                localStorage.removeItem(LOCAL_STORAGE_KEY_MESA);
+            }
+        }
+    };
+
+    // NOVO: Função para carregar o número da mesa
+    const loadMesaNumber = () => {
+        if (tableNumberInput) {
+            const storedMesa = localStorage.getItem(LOCAL_STORAGE_KEY_MESA);
+            if (storedMesa) {
+                tableNumberInput.value = storedMesa;
+            }
+        }
+    };
+    
+    // MODIFICADO: Atualiza o Local Storage usando a constante
     const updateSummary = () => {
         let total = comandaItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
         totalPriceElement.textContent = formatPrice(total);
@@ -51,8 +78,11 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             trocoButton.style.display = 'none';
         }
-        localStorage.setItem('comanda', JSON.stringify(comandaItems));
+        localStorage.setItem(LOCAL_STORAGE_KEY_COMANDA, JSON.stringify(comandaItems));
     };
+
+
+    const formatPrice = (price) => `R$ ${price.toFixed(2).replace('.', ',')}`;
 
     const renderComanda = () => {
         summaryList.innerHTML = '';
@@ -208,8 +238,15 @@ document.addEventListener('DOMContentLoaded', () => {
         closeNotesModal();
       }
     });
+
+    // NOVO: Event Listeners para o Número da Mesa
+    if (tableNumberInput) {
+        tableNumberInput.addEventListener('change', saveMesaNumber);
+        tableNumberInput.addEventListener('keyup', saveMesaNumber); 
+    }
     
     // Iniciar a aplicação
+    loadMesaNumber(); // Carrega o número da mesa antes de renderizar tudo
     renderProducts(products);
     renderComanda();
     updateSummary();
