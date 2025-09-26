@@ -1289,4 +1289,38 @@ body, html {
     position: relative;
     width: 100vw;
   }
+
+  /* Barra de pesquisa responsiva para mobile */
+@media (max-width: 767px) {
+  .main-header {
+    padding: 10px 6px;
+  }
+  .header-content {
+    flex-direction: row;
+    align-items: center;
+    width: 100%;
+    max-width: none;
+    gap: 8px;
+    justify-content: flex-start;
+  }
+  .table-number-container {
+    flex-shrink: 0;
+    margin-right: 8px;
+    min-width: 70px;
+  }
+  .search-container {
+    flex-grow: 1;
+    width: auto;
+    min-width: 0;
+    margin: 0;
+    padding: 8px 8px;
+    box-sizing: border-box;
+    max-width: calc(100vw - 90px); /* Garante espaço para mesa */
+  }
+  .search-container input {
+    width: 100%;
+    min-width: 0;
+    font-size: 16px;
+  }
+}
 }
