@@ -3,23 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/png" href="assets/Logo.png" />
     <title>Comanda Digital</title>
     <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" type="image/png" href="assets/logo.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
     <div class="main-container">
+        <aside class="off-canvas-menu" id="off-canvas-menu">
+            <div class="sidebar-header">
+                <i class="fas fa-user-circle profile-icon"></i>
+                <span class="user-name" id="user-name">Garçom 123</span>
+            </div>
+            <div class="sidebar-links">
+                <button class="menu-link" id="btn-mesa-menu">
+                    <i class="fas fa-utensil-spoon menu-icon"></i>
+                    <span id="mesa-display-menu">Mesa: #</span>
+                </button>
+                <a href="pedidos.html" class="menu-link">
+                    <i class="fas fa-list-alt menu-icon"></i>
+                    Pedidos Enviados
+                </a>
+            </div>
+            <button class="logout-link" id="btn-logout">
+                <i class="fas fa-arrow-left menu-icon"></i>
+                Sair da conta
+            </button>
+        </aside>
+        
+        <div class="overlay" id="overlay"></div>
+
         <header class="main-header">
             <div class="header-content">
                 <button class="menu-button" id="menu-button">
                     <i class="fas fa-bars"></i>
                 </button>
                 
-                <div class="table-number-container">
-                    <label for="table-number" class="table-number-label">Mesa:</label>
-                    <input type="number" id="table-number" min="1" placeholder="Nº" class="table-number-input">
-                </div>
                 <div class="search-container">
                     <input type="text" id="search-bar" placeholder="Buscar no menu...">
                     <i class="fas fa-search search-icon"></i>
@@ -28,60 +47,74 @@
         </header>
 
         <main class="content-wrapper">
-            <aside class="sidebar" id="sidebar">
-                <div class="category-list">
-                    <button class="category-item active" data-category="Todos">
-                        <i class="fas fa-utensils category-icon"></i>
-                        <span class="category-text">Todos</span>
-                    </button>
-                    <button class="category-item" data-category="Salgados">
-                        <i class="fas fa-pizza-slice category-icon"></i>
-                        <span class="category-text">Salgados</span>
-                    </button>
-                    <button class="category-item" data-category="Doces">
-                        <i class="fas fa-cookie-bite category-icon"></i>
-                        <span class="category-text">Doces</span>
-                    </button>
-                    <button class="category-item" data-category="Bebidas">
-                        <i class="fas fa-glass-martini-alt category-icon"></i>
-                        <span class="category-text">Bebidas</span>
-                    </button>
+            
+            <div class="dropdown-container">
+                <div class="category-menu-bar">
+                    <div class="menu-dropdown-toggle" data-type="Pratos" id="toggle-pratos">
+                        <i class="fas fa-utensils menu-icon"></i>
+                        <span>Pratos</span>
+                        <i class="fas fa-chevron-down arrow-icon"></i>
+                    </div>
+                    
+                    <div class="menu-dropdown-toggle" data-type="Bebidas" id="toggle-bebidas">
+                        <i class="fas fa-glass-martini-alt menu-icon"></i>
+                        <span>Bebidas</span>
+                        <i class="fas fa-chevron-down arrow-icon"></i>
+                    </div>
                 </div>
-            </aside>
+                
+                <div class="dropdown-overlay" id="dropdown-overlay">
+                    <div class="dropdown-content" id="dropdown-content">
+                    </div>
+                </div>
+            </div>
 
             <section class="main-section">
-                <div class="product-list-scroll">
-                    <div class="product-grid" id="product-grid">
-                        <!-- Os cards de produto serão inseridos aqui via JS -->
-                    </div>
+                <div class="product-grid" id="product-grid">
                 </div>
-
+                
                 <div class="comanda-summary" id="comanda-summary">
-                    <div class="summary-list" id="summary-list">
-                        <!-- Itens do resumo -->
+                    <div class="mesa-header">
+                        <span class="mesa-label">Mesa Atual:</span>
+                        <span class="mesa-number" id="mesa-summary-display-header">#</span>
+                        <button class="change-mesa-btn" id="change-mesa-btn-summary"><i class="fas fa-edit"></i></button>
                     </div>
+
+                    <div class="summary-list" id="summary-list">
+                        </div>
 
                     <div class="summary-footer">
-                        <div class="summary-info">
-                            <span class="summary-text">TOTAL:</span>
+                        <div class="summary-info total-info">
+                            <span class="summary-price-label">TOTAL:</span>
                             <span class="summary-price" id="total-price">R$ 0,00</span>
                         </div>
-                        <a href="troco.html" class="troco-button" id="troco-button" style="display: none;">
-                            Calcular Troco
-                        </a>
+                        <button class="fazer-pedido-button" id="fazer-pedido-button" style="display: none;">
+                            Fazer Pedido
+                        </button>
                     </div>
                 </div>
             </section>
         </main>
     </div>
 
+    <div class="mesa-modal" id="mesa-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title-mesa">Selecione o número da mesa</h3>
+            </div>
+            <input type="number" id="mesa-number-input" min="1" placeholder="Nº da Mesa" class="mesa-input">
+            <button id="save-mesa-button">Ir</button>
+        </div>
+    </div>
+
     <div class="notes-modal" id="notes-modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 id="modal-title">Anotações</h3>
-                <span class="close-button" id="close-modal-button">&times;</span>
+                <h3 id="modal-title">Anotações para o Pedido</h3>
+                <span class="close-button" id="close-notes-modal-button">&times;</span>
             </div>
-            <textarea id="notes-textarea" placeholder="Adicionar anotações..."></textarea>
+            <h4 id="notes-item-name">Item: </h4>
+            <textarea id="notes-textarea" placeholder="Adicionar anotações sobre o item (ex: 'sem cebola', 'ponto da carne')..."></textarea>
             <button id="save-notes-button">Salvar Anotação</button>
         </div>
     </div>
