@@ -343,11 +343,6 @@ document.addEventListener('DOMContentLoaded', () => {
         offCanvasMenu.classList.remove('open');
         overlay.classList.remove('show');
     });
-    btnLogout.addEventListener('click', () => {
-        alert("Saindo da conta.");
-        // Lógica de logout real aqui
-    });
-
     // Toggle da Mesa (Menu Lateral e Sumário)
     btnMesaMenu.addEventListener('click', () => {
         offCanvasMenu.classList.remove('open');
