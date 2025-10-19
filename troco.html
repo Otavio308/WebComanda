@@ -1,45 +1,56 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calcular Troco</title>
-    <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <title>Troco - Sistema</title>
+    <link rel="stylesheet" href="css/troco.css">
 </head>
 <body>
-
-    <header class="troco-header">
-        <a href="index.html" class="back-button"><i class="fas fa-arrow-left"></i></a>
-        <h1 class="header-title">Calcular Troco</h1>
+    <header class="header">
+        <button class="btn-voltar" onclick="voltar()">←</button>
+        <h1>Troco</h1>
     </header>
 
-    <main class="troco-main-container">
-        <div class="troco-card">
-            <h2 class="card-title">Detalhes da Conta</h2>
-            <div class="info-row">
-                <span class="info-label">Total a Pagar:</span>
-                <span id="total-da-conta" class="info-value"></span>
+    <main class="troco-container">
+        <section class="resumo-section">
+            <h2>Resumo</h2>
+            <div class="itens-lista" id="itens-lista">
+                <!-- Itens serão inseridos via JavaScript -->
+            </div>
+            
+            <div class="totais">
+                <div class="total-item">
+                    <span class="total-label">Total de Itens:</span>
+                    <span class="total-value" id="total-itens">0</span>
+                </div>
+                <div class="total-item">
+                    <span class="total-label">Valor Total:</span>
+                    <span class="total-value valor-total" id="valor-total">R$0,00</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="pagamento-section">
+            <div class="input-group">
+                <label for="valor-recebido">Valor Recebido:</label>
+                <input type="number" id="valor-recebido" placeholder="0,00" step="0.01" min="0">
+                <span class="currency-symbol">R$</span>
             </div>
 
-            <div class="input-section">
-                <label for="valor-pago" class="input-label">Valor Recebido:</label>
-                <input type="number" id="valor-pago" class="input-field" placeholder="0,00" step="0.01">
+            <div class="troco-resultado">
+                <h3>Calcular total de troco</h3>
+                <div class="troco-valor" id="troco-valor">R$0,00</div>
             </div>
+        </section>
 
-            <div class="button-section">
-                <button id="calcular-button" class="action-button">Calcular Troco</button>
-                <button id="limpar-button" class="action-button clear-button">Limpar</button>
-            </div>
-
-            <div class="resultado-section">
-                <h3 class="resultado-label">Troco:</h3>
-                <p id="resultado-troco" class="resultado-value"></p>
-            </div>
-        </div>
+        <section class="acoes-section">
+            <button class="btn-concluir" id="btn-concluir" onclick="concluirPedido()">
+                Concluir pedido
+            </button>
+        </section>
     </main>
 
     <script src="js/troco.js"></script>
-    
 </body>
 </html>

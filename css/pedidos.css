@@ -20,37 +20,13 @@ body {
     right: 0;
     z-index: 100;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
 }
 
 .header h1 {
     font-size: 1.5rem;
     font-weight: 600;
-    margin: 0;
-}
-
-/* Back arrow button */
-.back-arrow {
-    position: absolute;
-    left: 1rem;
-    top: 50%;
-    transform: translateY(-50%);
-    background: transparent;
-    border: none;
-    color: white;
-    display: inline-flex;
-    align-items: center;
+    display: flex;
     justify-content: center;
-    padding: 0.25rem;
-    cursor: pointer;
-    font-size: 1rem;
-}
-
-.back-arrow svg { 
-    display: block;
-    color: white;
 }
 
 .pedidos-container {
@@ -69,7 +45,7 @@ body {
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     cursor: pointer;
     transition: all 0.3s ease;
-    border-left: 4px solid #8D7B60;
+    border-left: 4px solid #007bff;
 }
 
 .pedido-card:hover {
@@ -82,6 +58,22 @@ body {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 0.5rem;
+}
+
+.back-arrow {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: white;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.25rem;
+   cursor: pointer;
+    font-size: 1rem;
 }
 
 .pedido-id {
@@ -105,7 +97,7 @@ body {
 .pedido-valor {
     font-size: 1.2rem;
     font-weight: bold;
-    color: #B78D23;
+    color: #28a745;
 }
 
 .pedido-status {
@@ -117,14 +109,8 @@ body {
 
 .status-pendente {
     background-color: #fff3cd;
-    color: #ff7300;
+    color: #856404;
     border: 1px solid #ffeaa7;
-}
-
-.status-preparando {
-    background-color: #cce7ff;
-    color: #004085;
-    border: 1px solid #b3d7ff;
 }
 
 .status-pronto {
@@ -133,8 +119,42 @@ body {
     border: 1px solid #c3e6cb;
 }
 
-.status-entregue {
-    background-color: #e2e3e5;
-    color: #383d41;
-    border: 1px solid #d6d8db;
+.pedido-itens {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid #eee;
+}
+
+.itens-lista {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.item-tag {
+    background-color: #f8f9fa;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    color: #495057;
+    border: 1px solid #dee2e6;
+}
+
+.item-quantidade {
+    font-weight: bold;
+    color: #000;
+}
+
+.item-status {
+    margin-left: 0.25rem;
+    font-size: 0.7rem;
+}
+
+.item-pendente {
+    color: #dc3545;
+}
+
+.item-pronto {
+    color: #28a745;
 }

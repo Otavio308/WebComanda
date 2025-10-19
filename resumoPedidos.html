@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resumo do Pedido</title>
+    <link rel="stylesheet" href="css/resumoPedidos.css">
+</head>
+<body>
+    <header class="header">
+        <button class="btn-voltar" onclick="voltar()">←</button>
+        <h1 id="pedido-numero">Pedido#293</h1>
+    </header>
+
+    <main class="resumo-container">
+        <div class="pedido-info">
+            <div class="info-item">
+                <span class="info-label">Data:</span>
+                <span class="info-value" id="pedido-data">2025-10-12 18:36</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Status:</span>
+                <span class="info-value status-pedido" id="pedido-status">Pendente</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Total:</span>
+                <span class="info-value total-pedido" id="pedido-total">R$40,50</span>
+            </div>
+        </div>
+
+        <section class="itens-section">
+            <h2>Itens do Pedido</h2>
+            <div class="itens-container" id="itens-container">
+                <!-- Itens serão inseridos via JavaScript -->
+            </div>
+        </section>
+
+        <section class="acoes-section">
+            <button class="btn-acao" id="btn-calcular-troco" onclick="calcularTroco()">
+                Calcular troco
+            </button>
+            <button class="btn-acao" id="btn-adicionar-item" onclick="adicionarItem()">
+                Adicionar item
+            </button>
+            <button class="btn-acao btn-cancelar" id="btn-cancelar-pedido" onclick="cancelarPedido()">
+                Cancelar Pedido
+            </button>
+        </section>
+    </main>
+
+    <!-- Modal de Confirmação -->
+    <div class="modal" id="modal-confirmacao">
+        <div class="modal-content">
+            <h3 id="modal-titulo">Confirmar ação</h3>
+            <p id="modal-mensagem">Deseja marcar como pronto?</p>
+            <div class="item-confirmacao" id="modal-item-info">
+                1x Coca-cola: R$35,50
+            </div>
+            <div class="modal-botoes">
+                <button class="btn-modal btn-cancelar" onclick="fecharModal()">Não</button>
+                <button class="btn-modal btn-confirmar" onclick="confirmarAcao()">SIM</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Alerta -->
+    <div class="modal" id="modal-alerta">
+        <div class="modal-content">
+            <h3>Alerta</h3>
+            <p id="alerta-mensagem">Você não tem permissão para essa funcionalidade.</p>
+            <div class="modal-botoes">
+                <button class="btn-modal btn-alerta" onclick="fecharAlerta()">Sair</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/resumoPedidos.js"></script>
+</body>
+</html>
