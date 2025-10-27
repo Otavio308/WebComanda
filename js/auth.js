@@ -14,7 +14,7 @@ class AuthService {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), AppConfig.REQUEST_TIMEOUT);
 
-            const response = await fetch(`${API_BASE_URL}/auth/login`, {
+            const response = await fetch(`${API_BASE_URL}/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -94,7 +94,7 @@ class AuthService {
         localStorage.removeItem(AppConfig.AUTH.LOGIN_TIME_KEY);
         
         // Redireciona para a página de login
-        window.location.href = '/login.html';
+        window.location.href = '/ComandaWeb/Login.html';
     }
 
     /**

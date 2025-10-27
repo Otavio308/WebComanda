@@ -134,21 +134,52 @@ function calcularTroco() {
     }
 }
 
-// Conclui o pedido
-function concluirPedido() {
+// Helpers de API/Autenticação
+function getNormalizedApiBase() {
+    const raw = (window.AppConfig && AppConfig.API_BASE_URL) ? AppConfig.API_BASE_URL : 'http://localhost:3001';
+    return raw.replace(/\/auth(?:\/.*)?$/i, '').replace(/\/+$/, '');
+}
+
+function getToken() {
+    if (window.AuthService?.getToken) return AuthService.getToken();
+    return localStorage.getItem('auth_token');
+}
+
+function getUserRole() {
+    try {
+        const u = window.AuthService?.getUserData?.() || {};
+        return (u.role || u.perfil || '')
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase();
+    } catch { return ''; }
+}
+
+// Conclui o pedido (faz pagamento no backend)
+async function concluirPedido() {
     if (!pedido) return;
-    
+
     const valorRecebido = parseFloat(valorRecebidoInput.value) || 0;
-    const valorTotal = pedido.valorTotal;
+    const valorTotal = Number(pedido.valorTotal || 0);
     const troco = valorRecebido - valorTotal;
-    
-    // Validações
+
+    // Apenas Caixa pode pagar
+    const role = getUserRole();
+    if (role !== 'caixa') {
+        alert('Apenas o Caixa pode concluir o pagamento.');
+        return;
+    }
+
+    // Método de pagamento (se existir select na página; senão usa "dinheiro")
+    const metodoSel = document.getElementById('metodo-pagamento');
+    const metodo = (metodoSel && metodoSel.value) ? metodoSel.value : 'dinheiro';
+
+    // Validações básicas
     if (valorRecebido <= 0) {
         alert('Por favor, informe o valor recebido!');
         valorRecebidoInput.focus();
         return;
     }
-    
+
     if (troco < 0) {
         const confirmar = confirm(`Valor recebido é insuficiente! Faltam R$${Math.abs(troco).toFixed(2)}\nDeseja continuar mesmo assim?`);
         if (!confirmar) {
@@ -156,31 +187,95 @@ function concluirPedido() {
             return;
         }
     }
-    
-    // Prepara dados para conclusão
-    const dadosConclusao = {
-        pedidoId: pedido.id,
-        valorTotal: valorTotal,
-        valorRecebido: valorRecebido,
-        troco: troco,
-        dataConclusao: new Date().toISOString(),
-        itens: pedido.itens
+
+    // Chama backend: POST /sistema/pagamentos (fallback /pagamentos)
+    const apiBase = getNormalizedApiBase();
+    const token = getToken();
+    if (!token) {
+        alert('Sessão expirada. Faça login novamente.');
+        return;
+    }
+
+    const payload = {
+        id_pedido: pedido.id,
+        valor_pago: valorRecebido,
+        metodo
+        // troco é calculado no backend; não é obrigatório enviar
     };
-    
-    // Simula conclusão do pedido
-    console.log('Concluindo pedido:', dadosConclusao);
-    
-    // Aqui você faria a requisição para o backend
-    // para atualizar o status do pedido para "concluído"
-    
-    // Mostra confirmação
-    alert(`Pedido ${pedido.id} concluído com sucesso!\nTroco: R$${troco.toFixed(2)}`);
-    
-    // Limpa o localStorage
+
+    const urls = [
+        `${apiBase}/sistema/pagamentos`,
+        `${apiBase}/pagamentos`
+    ];
+
+    // Desabilita botão concluir se existir
+    const btnConcluir = document.getElementById('btn-concluir');
+    if (btnConcluir) {
+        btnConcluir.disabled = true;
+        btnConcluir.textContent = 'Processando...';
+    }
+
+    let sucesso = false;
+    let respostaBackend = null;
+
+    for (const url of urls) {
+        try {
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                try {
+                    respostaBackend = await res.json();
+                } catch {
+                    respostaBackend = { message: 'Pagamento realizado.' };
+                }
+                sucesso = true;
+                break;
+            } else {
+                // Tenta ler mensagem de erro
+                let msg = 'Erro ao processar pagamento.';
+                try {
+                    const data = await res.json();
+                    msg = data?.message || data?.erro || JSON.stringify(data);
+                } catch {
+                    msg = await res.text();
+                }
+                console.warn('Falha no pagamento:', msg);
+                alert(msg.substring(0, 300));
+                break; // para se recebeu erro compreensível do backend
+            }
+        } catch (e) {
+            console.warn('Erro na requisição de pagamento:', e);
+            // tenta próxima URL
+        }
+    }
+
+    // Reabilita botão
+    if (btnConcluir) {
+        btnConcluir.disabled = false;
+        btnConcluir.textContent = 'Concluir';
+    }
+
+    if (!sucesso) {
+        return; // já exibiu alerta acima
+    }
+
+    // Sucesso: mostra confirmação com troco calculado
+    const trocoFinal = typeof respostaBackend?.pagamento?.troco === 'number'
+        ? respostaBackend.pagamento.troco
+        : troco;
+
+    alert(`Pagamento concluído!\nPedido: ${pedido.id}\nTroco: R$${Number(trocoFinal).toFixed(2)}`);
+
+    // Limpa seleção e volta para listagem
     localStorage.removeItem('pedidoSelecionado');
-    
-    // Redireciona para a tela de pedidos
-    window.location.href = 'index.html';
+    window.location.href = 'pedidos.html'; // ou 'index.html' se preferir
 }
 
 // Volta para a tela anterior

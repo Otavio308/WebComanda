@@ -5,11 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Resumo do Pedido</title>
     <link rel="stylesheet" href="css/resumoPedidos.css">
+    <link rel="icon" type="image/png" href="assets/logo.png">
 </head>
 <body>
     <header class="header">
-        <button class="btn-voltar" onclick="voltar()">←</button>
-        <h1 id="pedido-numero">Pedido#293</h1>
+        <button class="back-arrow" id="backButton" aria-label="Voltar">
+            ←
+        </button>
+        <h1>Resumo do Pedido</h1>
     </header>
 
     <main class="resumo-container">
@@ -74,6 +77,8 @@
         </div>
     </div>
 
+    <script src="js/configP.js"></script>
+    <script src="js/auth.js"></script>
     <script src="js/resumoPedidos.js"></script>
 </body>
 </html>

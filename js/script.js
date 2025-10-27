@@ -1,25 +1,50 @@
 // script.js
-document.addEventListener('DOMContentLoaded', () => {
-    // Dados de produtos (estrutura mantida do arquivo do usuário)
-    const products = [
-        // PRATOS - ENTRADAS
-        { id: 1, name: 'Pão Francês', price: 0.50, type: 'Pratos', category: 'Entradas', image: 'https://redemix.vteximg.com.br/arquivos/ids/214544-1000-1000/6914.jpg?v=638351307421600000', description: 'Um pão crocante e macio, perfeito para qualquer hora do dia.' },
-        { id: 3, name: 'Croissant', price: 4.50, type: 'Pratos', category: 'Entradas', description: 'Clássico croissant amanteigado, crocante por fora e macio por dentro.' },
-        // PRATOS - PRINCIPAL
-        { id: 4, name: 'Torta de Frango', price: 8.00, type: 'Pratos', category: 'Principal', description: 'Torta caseira com recheio cremoso de frango e massa super leve.' },
-        { id: 8, name: 'XTudo', price: 18.00, type: 'Pratos', category: 'Principal', description: 'Sanduíche completo com hambúrguer, ovo, bacon, queijo, presunto e salada.' },
-        { id: 9, name: 'Macarronada', price: 25.00, type: 'Pratos', category: 'Principal', description: 'Massa italiana com molho de tomate e carne moída.' },
-        // PRATOS - SOBREMESAS
-        { id: 2, name: 'Bolo de Chocolate', price: 15.00, type: 'Pratos', category: 'Sobremesas', image: 'assets/bolo.png', description: 'Delicioso bolo de chocolate com cobertura de ganache.' },
-        { id: 7, name: 'Brigadeiro', price: 2.50, type: 'Pratos', category: 'Sobremesas', description: 'O clássico brigadeiro brasileiro, feito com chocolate de alta qualidade.' },
-        // BEBIDAS - REFRIGERANTES
-        { id: 10, name: 'Coca-Cola', price: 7.00, type: 'Bebidas', category: 'Refrigerantes', description: 'Refrigerante Coca-Cola gelado.' },
-        { id: 5, name: 'Guaraná Antarctica', price: 6.00, type: 'Bebidas', category: 'Refrigerantes', description: 'Refrigerante Guaraná Antarctica gelado.' },
-        // BEBIDAS - SUCOS
-        { id: 6, name: 'Suco de Laranja', price: 6.50, type: 'Bebidas', category: 'Sucos', description: 'Suco de laranja natural, espremido na hora.' },
-    ];
-    
-    // Estrutura de sub-categorias (mantida)
+document.addEventListener('DOMContentLoaded', async () => {
+    // Produtos serão carregados do backend
+    let products = [];
+
+    // Função para carregar cardápio do backend
+    async function loadCardapioFromServer() {
+        try {
+            // Deriva base API a partir do AppConfig (config.js) — remove /auth se presente
+            const apiBase = (window.AppConfig && AppConfig.API_BASE_URL)
+                ? AppConfig.API_BASE_URL.replace(/\/auth\/?$/i, '')
+                : 'http://localhost:3001';
+
+            const controller = new AbortController();
+            const timeout = (window.AppConfig && AppConfig.REQUEST_TIMEOUT) ? AppConfig.REQUEST_TIMEOUT : 10000;
+            const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+            const res = await fetch(`${apiBase}/sistema/cardapio`, {
+                method: 'GET',
+                signal: controller.signal,
+                headers: { 'Content-Type': 'application/json' }
+            });
+            clearTimeout(timeoutId);
+
+            if (!res.ok) {
+                throw new Error(`Erro ao buscar cardápio: ${res.status} ${res.statusText}`);
+            }
+
+            const rows = await res.json();
+
+            // Mapeia formato do backend para uso no frontend
+            products = rows.map(r => ({
+                id: r.id_item,
+                name: r.nome_item,
+                price: typeof r.valor === 'string' ? parseFloat(r.valor) : (r.valor || 0),
+                category: r.nome_categoria || (r.categoria || 'Outros'),
+                description: r.descricao || '',
+                image: r.imagem || null // caso queira salvar URL/imagem no DB
+            }));
+        } catch (err) {
+            console.error('Não foi possível carregar cardápio do servidor:', err);
+            // opcional: manter lista vazia ou fallback para listagem mockada
+            products = [];
+        }
+    }
+
+    // Estrutura de sub-categorias — mantemos dois dropdowns: Pratos e Bebidas
     const MENU_STRUCTURE = {
         'Pratos': [
             { name: 'Todos os Pratos', category: 'Todos', icon: 'fas fa-utensils' },
@@ -29,7 +54,8 @@ document.addEventListener('DOMContentLoaded', () => {
         ],
         'Bebidas': [
             { name: 'Todas as Bebidas', category: 'Todos', icon: 'fas fa-glass-martini-alt' },
-            { name: 'Refrigerantes', category: 'Refrigerantes', icon: 'fas fa-box' },
+            // troquei o ícone de "caixa" para um ícone de copo (mais adequado para refrigerantes)
+            { name: 'Refrigerantes', category: 'Refrigerantes', icon: 'fas fa-glass-whiskey' },
             { name: 'Sucos', category: 'Sucos', icon: 'fas fa-lemon' }
         ]
     };
@@ -41,7 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Variáveis de estado
     let comandaItems = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY_COMANDA)) || [];
     let modalTargetId = null; // ID do item para anotações
-    let selectedType = null; // null = sem filtro por tipo (mostra todos)
+    let selectedType = null; // 'Pratos' ou 'Bebidas' — representa qual dropdown está ativo
     let selectedCategory = 'Todos'; 
     
     // Elementos do DOM
@@ -82,6 +108,16 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Funções Utilitárias
     const formatPrice = (price) => `R$ ${price.toFixed(2).replace('.', ',')}`;
+
+    // Helper: dado uma categoria, determina se pertence a Pratos ou Bebidas
+    const getSectionForCategory = (category) => {
+        if (!category || category === 'Todos') return null;
+        const pratosCats = MENU_STRUCTURE['Pratos'].map(c => c.category);
+        if (pratosCats.includes(category)) return 'Pratos';
+        const bebidasCats = MENU_STRUCTURE['Bebidas'].map(c => c.category);
+        if (bebidasCats.includes(category)) return 'Bebidas';
+        return null;
+    };
 
     // -------------------- LÓGICA MESA --------------------
     const updateMesaDisplay = (mesa) => {
@@ -169,13 +205,11 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const addToComanda = (productId) => {
         const product = products.find(p => p.id == productId);
-        // Sempre adiciona como um novo item se não tiver anotações e for o primeiro
         const existingItem = comandaItems.find(item => item.id == productId && !item.notes);
 
         if (existingItem) {
             existingItem.quantity++;
         } else {
-            // Se o item tem anotações, ou é a primeira vez, é tratado como um novo item na lista (para anotações futuras)
             comandaItems.push({ 
                 ...product, 
                 quantity: 1, 
@@ -187,14 +221,13 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     
     const removeFromComanda = (productId) => {
-        // Encontra o item (sem considerar anotações aqui, mas remove uma unidade do primeiro encontrado)
         const existingItemIndex = comandaItems.findIndex(item => item.id == productId);
         
         if (existingItemIndex !== -1) {
             const existingItem = comandaItems[existingItemIndex];
             existingItem.quantity--;
             if (existingItem.quantity <= 0) {
-                comandaItems.splice(existingItemIndex, 1); // Remove do array se a quantidade for 0
+                comandaItems.splice(existingItemIndex, 1);
             }
         }
         renderComanda();
@@ -202,7 +235,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Lógica do Modal de Anotações
     const openNotesModal = (id) => {
-        // Usa o ID do produto para encontrar o item na comanda. Se houver duplicatas, abre o modal do primeiro encontrado.
         modalTargetId = id;
         const item = comandaItems.find(i => i.id == id);
         if (item) {
@@ -249,7 +281,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (product.image) {
                 mediaHtml = `<img src="${product.image}" alt="${product.name}" class="product-image">`;
             } else {
-                const typeStructure = MENU_STRUCTURE[product.type] || [];
+                // determina seção (Pratos/Bebidas) a partir da category do produto
+                const section = getSectionForCategory(product.category) || 'Pratos';
+                const typeStructure = MENU_STRUCTURE[section] || [];
                 const defaultIcon = typeStructure.find(c => c.category === product.category)?.icon || 'fas fa-utensils';
                 mediaHtml = `<div class="product-icon-container" style="background-color: #f8f8f8; display: flex; justify-content: center; align-items: center; height: 110px;"><i class="${defaultIcon} product-icon" style="font-size: 40px; color: var(--light-text-color);"></i></div>`;
             }
@@ -266,9 +300,19 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const filterProducts = () => {
-        let filteredProducts = selectedType ? products.filter(p => p.type === selectedType) : products.slice();
+        let filteredProducts = products.slice();
         
-        if (selectedCategory !== 'Todos') {
+        // Primeiro filtro: pelo menu (Pratos / Bebidas) se selecionado
+        if (selectedType === 'Pratos') {
+            const pratosCats = MENU_STRUCTURE['Pratos'].map(c => c.category).filter(c => c !== 'Todos');
+            filteredProducts = filteredProducts.filter(p => pratosCats.includes(p.category));
+        } else if (selectedType === 'Bebidas') {
+            const bebidasCats = MENU_STRUCTURE['Bebidas'].map(c => c.category).filter(c => c !== 'Todos');
+            filteredProducts = filteredProducts.filter(p => bebidasCats.includes(p.category));
+        }
+
+        // Segundo filtro: categoria específica dentro do menu (Entradas / Principal / Sobremesas / Sucos / Refrigerantes)
+        if (selectedCategory && selectedCategory !== 'Todos') {
             filteredProducts = filteredProducts.filter(p => p.category === selectedCategory);
         }
         
@@ -391,7 +435,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // Posicionamento do Dropdown (para desktop)
         const rect = button.getBoundingClientRect();
         if (window.innerWidth > 600) {
-            // No desktop, a sidebar é fixa, então a posição é absoluta em relação ao dropdown-container.
             dropdownContent.style.top = `0px`; 
             dropdownContent.style.left = `100%`;
             dropdownContent.style.transform = `translateX(20px)`; 
@@ -435,8 +478,8 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // Botão Fazer Pedido (Simulação)
-    fazerPedidoButton.addEventListener('click', () => {
+    // Botão Fazer Pedido (agora envia para o backend) - versão com diagnóstico e fallback de rota
+    fazerPedidoButton.addEventListener('click', async () => {
         const mesa = localStorage.getItem(LOCAL_STORAGE_KEY_MESA);
 
         if (!mesa) {
@@ -448,15 +491,80 @@ document.addEventListener('DOMContentLoaded', () => {
             alert("Adicione itens à comanda.");
             return;
         }
-        
-        const pedido = { mesa: mesa, itens: comandaItems, total: totalPriceElement.textContent };
 
-        console.log("PEDIDO ENVIADO:", pedido);
-        alert(`Pedido da Mesa ${mesa} enviado com sucesso! (Simulação)`);
+        const itensPayload = comandaItems.map(i => ({
+            id_item: i.id,
+            quantidade: i.quantity,
+            observacao: i.notes || ''
+        }));
 
-        comandaItems = [];
-        renderComanda();
+        const apiBase = (window.AppConfig && AppConfig.API_BASE_URL) ? AppConfig.API_BASE_URL.replace(/\/$/, '') : 'http://localhost:3001';
+        const candidateUrls = [
+            `${apiBase}/sistema/pedidos`,
+            `${apiBase}/pedidos`
+        ];
+
+        const token = (window.AuthService && typeof AuthService.getToken === 'function')
+            ? AuthService.getToken()
+            : localStorage.getItem('auth_token');
+
+        if (!token) {
+            window.location.href = '/ComandaWeb/Login.html';
+            return;
+        }
+
+        fazerPedidoButton.disabled = true;
+        let lastError = null;
+
+        for (const url of candidateUrls) {
+            try {
+                console.log('Tentando enviar pedido para:', url);
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ id_mesa: parseInt(mesa, 10), itens: itensPayload })
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    alert(data.message || `Pedido da Mesa ${mesa} enviado com sucesso!`);
+                    comandaItems = [];
+                    renderComanda();
+                    lastError = null;
+                    break;
+                }
+
+                // se 404, tenta próximo candidate; para outros erros, tenta extrair corpo e lançar
+                const textoErro = await res.text().catch(() => '');
+                console.warn(`Resposta não OK (${res.status}) de ${url}:`, textoErro);
+                if (res.status === 404) {
+                    lastError = new Error(`404 from ${url}`);
+                    continue; // tenta próximo URL
+                } else {
+                    // tenta parse JSON para mensagem mais clara
+                    let errBody;
+                    try { errBody = JSON.parse(textoErro); } catch (e) { errBody = { message: textoErro }; }
+                    throw new Error(errBody.error || errBody.message || `Erro ao enviar pedido: ${res.status}`);
+                }
+            } catch (err) {
+                console.error('Erro ao tentar enviar para', url, err);
+                lastError = err;
+                // se for abort ou rede, não continuar a tentar? aqui continuamos para o próximo candidate
+            }
+        }
+
+        if (lastError) {
+            alert(`Falha ao enviar pedido: ${lastError.message}`);
+        }
+
+        fazerPedidoButton.disabled = false;
     });
+    
+    // Antes de inicializar filtros/visualização, carregue o cardápio do servidor
+    await loadCardapioFromServer();
 
     // Inicialização
     loadMesaNumber();
@@ -465,7 +573,13 @@ document.addEventListener('DOMContentLoaded', () => {
     renderComanda(); 
 
     window.addEventListener('resize', () => {
-        // Renderiza a comanda novamente para recalcular alturas em caso de desktop/mobile
         renderComanda();
     });
 });
+
+// Adicione helper no topo do DOMContentLoaded (antes de usar apiBase)
+function getNormalizedApiBase() {
+    const raw = (window.AppConfig && AppConfig.API_BASE_URL) ? AppConfig.API_BASE_URL : 'http://localhost:3001';
+    // remove possível sufixo '/auth' e barras finais
+    return raw.replace(/\/auth(?:\/.*)?$/i, '').replace(/\/+$/,'');
+}

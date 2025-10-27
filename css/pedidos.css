@@ -45,7 +45,7 @@ body {
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     cursor: pointer;
     transition: all 0.3s ease;
-    border-left: 4px solid #007bff;
+    border-left: 4px solid #8D7B60;
 }
 
 .pedido-card:hover {
@@ -97,7 +97,7 @@ body {
 .pedido-valor {
     font-size: 1.2rem;
     font-weight: bold;
-    color: #28a745;
+    color: #B78D23;
 }
 
 .pedido-status {

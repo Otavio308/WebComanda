@@ -1,48 +1,11 @@
-// Dados estáticos dos pedidos (futuramente virão do PostgreSQL)
-const pedidos = [
-    {
-        id: "Pedido#293",
-        data: "2025-10-12 18:36",
-        valor: "R$40,50",
-        status: "pendente",
-        itens: [
-            { nome: "Coca-cola", quantidade: 1, status: "pendente" },
-            { nome: "X-burger", quantidade: 2, status: "pendente" }
-        ]
-    },
-    {
-        id: "Pedido#356",
-        data: "2025-10-12 18:42",
-        valor: "R$17,50",
-        status: "pendente",
-        itens: [
-            { nome: "Suco Natural", quantidade: 1, status: "pronto" },
-            { nome: "Batata Frita", quantidade: 1, status: "pendente" }
-        ]
-    },
-    {
-        id: "Pedido#695",
-        data: "2025-10-12 18:59",
-        valor: "R$22,95",
-        status: "pronto",
-        itens: [
-            { nome: "Pizza Margherita", quantidade: 1, status: "pronto" },
-            { nome: "Refrigerante", quantidade: 2, status: "pronto" }
-        ]
-    },
-    {
-        id: "Pedido#701",
-        data: "2025-10-12 19:15",
-        valor: "R$35,00",
-        status: "pronto",
-        itens: [
-            { nome: "Hambúrguer", quantidade: 1, status: "pronto" },
-            { nome: "Milkshake", quantidade: 1, status: "pronto" }
-        ]
-    }
-];
+// Tela de pedidos — carrega do backend em vez de usar mocks
 
-// Função para mapear status para classes CSS
+// Helper: normaliza AppConfig.API_BASE_URL removendo sufixos indesejados (ex: /auth)
+function getNormalizedApiBase() {
+    const raw = (window.AppConfig && AppConfig.API_BASE_URL) ? AppConfig.API_BASE_URL : 'http://localhost:3001';
+    return raw.replace(/\/auth(?:\/.*)?$/i, '').replace(/\/+$/, '');
+}
+
 function getStatusClass(status) {
     const statusMap = {
         'pendente': 'status-pendente',
@@ -51,13 +14,12 @@ function getStatusClass(status) {
     return statusMap[status] || 'status-pendente';
 }
 
-// Função para formatar a data
 function formatarData(dataString) {
     const data = new Date(dataString);
+    if (isNaN(data)) return dataString || '';
     return data.toLocaleString('pt-BR');
 }
 
-// Função para criar o HTML dos itens do pedido
 function criarHTMLItens(itens) {
     if (!itens || itens.length === 0) return '';
 
@@ -80,7 +42,6 @@ function criarHTMLItens(itens) {
     `;
 }
 
-// Função para criar o card do pedido
 function criarCardPedido(pedido) {
     const card = document.createElement('div');
     card.className = 'pedido-card';
@@ -88,13 +49,13 @@ function criarCardPedido(pedido) {
     
     card.innerHTML = `
         <div class="pedido-header">
-            <span class="pedido-id">${pedido.id}</span>
+            <span class="pedido-id">#${pedido.id}</span>
             <span class="pedido-data">${formatarData(pedido.data)}</span>
         </div>
         <div class="pedido-info">
             <span class="pedido-valor">${pedido.valor}</span>
             <span class="pedido-status ${getStatusClass(pedido.status)}">
-                ${pedido.status.charAt(0).toUpperCase() + pedido.status.slice(1)}
+                ${pedido.status ? (pedido.status.charAt(0).toUpperCase() + pedido.status.slice(1)) : ''}
             </span>
         </div>
         ${criarHTMLItens(pedido.itens)}
@@ -103,27 +64,8 @@ function criarCardPedido(pedido) {
     return card;
 }
 
-// Função para carregar os pedidos na página
-function carregarPedidos() {
-    const container = document.querySelector('.pedidos-container');
-    
-    // Limpa o container
-    container.innerHTML = '';
-    
-    // Adiciona cada pedido ao container
-    pedidos.forEach(pedido => {
-        const card = criarCardPedido(pedido);
-        container.appendChild(card);
-    });
-    
-    // Adiciona event listeners para os cards
-    adicionarEventListeners();
-}
-
-// Função para adicionar event listeners aos cards
 function adicionarEventListeners() {
     const cards = document.querySelectorAll('.pedido-card');
-    
     cards.forEach(card => {
         card.addEventListener('click', function() {
             const pedidoId = this.getAttribute('data-pedido-id');
@@ -132,93 +74,232 @@ function adicionarEventListeners() {
     });
 }
 
-// Função para abrir o resumo do pedido
 function abrirResumoPedido(pedidoId) {
-    console.log(`Abrindo resumo do pedido: ${pedidoId}`);
-    
-    // Encontra o pedido selecionado
-    const pedidoSelecionado = pedidos.find(p => p.id === pedidoId);
-    
-    if (pedidoSelecionado) {
-        // Prepara os dados completos do pedido para a tela de resumo
-        const pedidoCompleto = {
-            ...pedidoSelecionado,
-            // Adiciona dados mais detalhados que serão usados no resumo
-            itens: pedidoSelecionado.itens.map((item, index) => ({
-                id: index + 1,
-                nome: item.nome,
-                quantidade: item.quantidade,
-                precoUnitario: calcularPrecoUnitario(item.nome),
-                precoTotal: calcularPrecoTotal(item),
-                status: item.status
-            }))
-        };
+    // Recupera lista atual exibida e encontra o pedido
+    const container = document.querySelector('.pedidos-container');
+    const card = container.querySelector(`.pedido-card[data-pedido-id="${pedidoId}"]`);
+    if (!card) return;
 
-        // Salva no localStorage para a tela de resumo
-        localStorage.setItem('pedidoSelecionado', JSON.stringify(pedidoCompleto));
-        
-        // Redireciona para a tela de resumo
-        window.location.href = 'resumoPedidos.html';
-    }
-}
-
-// Funções auxiliares para calcular preços (exemplo)
-function calcularPrecoUnitario(nomeItem) {
-    const precos = {
-        "Coca-cola": 8.99,
-        "X-burger": 15.75,
-        "Suco Natural": 6.50,
-        "Batata Frita": 12.00,
-        "Pizza Margherita": 18.95,
-        "Refrigerante": 7.00,
-        "Hambúrguer": 16.00,
-        "Milkshake": 14.00
+    // Monta objeto para resumo a partir do DOM (evita re-fetch); caso precise, pode buscar endpoint /pedidos/:id
+    const pedido = {
+        id: pedidoId,
+        data: card.querySelector('.pedido-data')?.textContent || '',
+        valor: card.querySelector('.pedido-valor')?.textContent || '',
+        status: card.querySelector('.pedido-status')?.textContent.toLowerCase() || '',
+        itens: []
     };
-    return precos[nomeItem] || 10.00;
+
+    const itensEls = card.querySelectorAll('.item-tag');
+    itensEls.forEach(el => {
+        const quantidade = el.querySelector('.item-quantidade')?.textContent.replace('x','')?.trim() || '1';
+        const nome = el.childNodes && el.childNodes.length > 1 ? el.childNodes[1].textContent.trim() : el.textContent.trim();
+        const status = el.querySelector('.item-status')?.classList.contains('item-pronto') ? 'pronto' : 'pendente';
+        pedido.itens.push({
+            nome: nome,
+            quantidade: parseInt(quantidade, 10) || 1,
+            status
+        });
+    });
+
+    localStorage.setItem('pedidoSelecionado', JSON.stringify(pedido));
+    window.location.href = 'resumoPedidos.html';
 }
 
-function calcularPrecoTotal(item) {
-    const precoUnitario = calcularPrecoUnitario(item.nome);
-    return precoUnitario * item.quantidade;
+// Mapeia status do front -> valor aceito no DB (sem alterar backend)
+function mapFrontStatusToDb(status) {
+  const s = String(status || '').toLowerCase();
+  if (s === 'em_preparo') return 'em preparo';
+  if (s === 'pronto')      return 'finalizado';
+  return s; // aberto, cancelado, etc.
 }
 
-// Inicializa a página quando carregada
-document.addEventListener('DOMContentLoaded', function() {
-    carregarPedidos();
+function getToken() {
+  if (window.AuthService?.getToken) return AuthService.getToken();
+  return localStorage.getItem('auth_token');
+}
+
+function getUserRole() {
+  try {
+    const u = window.AuthService?.getUserData?.() || {};
+    return (u.role || u.perfil || '')
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase();
+  } catch { return ''; }
+}
+
+async function patchPedidoStatus(pedidoId, frontStatus) {
+  const apiBase = getNormalizedApiBase();
+  const token = getToken();
+  if (!token) return false;
+
+  const statusDb = mapFrontStatusToDb(frontStatus);
+  const urls = [
+    `${apiBase}/sistema/pedidos/${pedidoId}/status`,
+    `${apiBase}/pedidos/${pedidoId}/status`
+  ];
+
+  for (const url of urls) {
+    try {
+      const res = await fetch(url, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: statusDb })
+      });
+      if (res.ok) return true;
+    } catch (_) {}
+  }
+  return false;
+}
+
+// Ao abrir um pedido pela Cozinha/Admin, coloca em preparo no backend antes de redirecionar
+document.addEventListener('click', async (e) => {
+  const card = e.target.closest('[data-pedido-id]');
+  if (!card) return;
+
+  const role = getUserRole();
+  const pedidoId = card.getAttribute('data-pedido-id');
+
+  if (role === 'cozinha' || role === 'admin') {
+    await patchPedidoStatus(pedidoId, 'em_preparo'); // envia "em preparo" ao backend
+  }
+
+  // Recupera lista atual exibida e encontra o pedido
+  const container = document.querySelector('.pedidos-container');
+  const cardPedido = container.querySelector(`.pedido-card[data-pedido-id="${pedidoId}"]`);
+  if (!cardPedido) return;
+
+  // Monta objeto para resumo a partir do DOM (evita re-fetch); caso precise, pode buscar endpoint /pedidos/:id
+  const pedido = {
+      id: pedidoId,
+      data: cardPedido.querySelector('.pedido-data')?.textContent || '',
+      valor: cardPedido.querySelector('.pedido-valor')?.textContent || '',
+      status: cardPedido.querySelector('.pedido-status')?.textContent.toLowerCase() || '',
+      itens: []
+  };
+
+  const itensEls = cardPedido.querySelectorAll('.item-tag');
+  itensEls.forEach(el => {
+      const quantidade = el.querySelector('.item-quantidade')?.textContent.replace('x','')?.trim() || '1';
+      const nome = el.childNodes && el.childNodes.length > 1 ? el.childNodes[1].textContent.trim() : el.textContent.trim();
+      const status = el.querySelector('.item-status')?.classList.contains('item-pronto') ? 'pronto' : 'pendente';
+      pedido.itens.push({
+          nome: nome,
+          quantidade: parseInt(quantidade, 10) || 1,
+          status
+      });
+  });
+
+  // Salve o objeto pedidoSelecionado no localStorage aqui, se já não faz
+  // localStorage.setItem('pedidoSelecionado', JSON.stringify(pedidoSelecionado));
+  window.location.href = 'resumoPedidos.html';
 });
 
-// Função para adicionar um novo pedido (para testes)
-function adicionarPedido(novoPedido) {
-    pedidos.unshift(novoPedido);
-    carregarPedidos();
-}
+async function carregarPedidosDoServidor() {
+    const container = document.querySelector('.pedidos-container');
+    if (!container) return;
 
-// Função para atualizar o status de um pedido
-function atualizarStatusPedido(pedidoId, novoStatus) {
-    const pedido = pedidos.find(p => p.id === pedidoId);
-    if (pedido) {
-        pedido.status = novoStatus;
-        carregarPedidos();
+    container.innerHTML = '<p style="text-align:center; padding:20px;">Carregando pedidos...</p>';
+
+    const apiBase = getNormalizedApiBase();
+    const candidateUrls = [
+        `${apiBase}/sistema/pedidos`,
+        `${apiBase}/pedidos`
+    ];
+
+    // token
+    const token = (window.AuthService && typeof AuthService.getToken === 'function')
+        ? AuthService.getToken()
+        : localStorage.getItem('auth_token');
+
+    if (!token) {
+        window.location.href = 'Login.html';
+        return;
     }
-}
 
-// Função para adicionar item a um pedido existente
-function adicionarItemAoPedido(pedidoId, novoItem) {
-    const pedido = pedidos.find(p => p.id === pedidoId);
-    if (pedido) {
-        pedido.itens.push(novoItem);
-        
-        // Se o pedido estava pronto e adicionou um item pendente, volta para pendente
-        if (pedido.status === 'pronto' && novoItem.status === 'pendente') {
-            pedido.status = 'pendente';
+    // helper: extrai itens do objeto pedido suportando várias chaves possíveis
+    const extractItems = (p) => {
+        const keys = ['itens', 'items', 'itens_pedido', 'itensPedido', 'pedido_itens', 'pedidoItens', 'itens_pedidos', 'rows'];
+        let arr = null;
+        for (const k of keys) {
+            if (Array.isArray(p[k]) && p[k].length > 0) {
+                arr = p[k];
+                break;
+            }
+            // algumas APIs retornam objetos com propriedade rows contendo itens
+            if (k === 'rows' && Array.isArray(p.rows) && p.rows.length > 0) {
+                arr = p.rows;
+                break;
+            }
         }
-        
-        // Recalcula o valor total (simplificado)
-        const valorTotal = pedido.itens.reduce((total, item) => {
-            return total + calcularPrecoTotal(item);
-        }, 0);
-        
-        pedido.valor = `R$${valorTotal.toFixed(2)}`;
-        carregarPedidos();
+        if (!arr) return [];
+
+        return arr.map(it => {
+            const nome = it.nome_item ?? it.nome ?? it.name ?? it.descricao ?? it.descricao_item ?? it.item_nome ?? '';
+            const quantidade = parseInt(it.quantidade ?? it.qtd ?? it.quant ?? it.qty ?? it.qtd_item ?? 1, 10) || 1;
+            const status = (it.status_item ?? it.status ?? it.estado ?? it.estado_item ?? 'pendente').toString().toLowerCase();
+            return { nome, quantidade, status };
+        });
+    };
+
+    let pedidos = null;
+    for (const url of candidateUrls) {
+        try {
+            const res = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            if (!res.ok) {
+                console.warn(`GET ${url} -> ${res.status}`);
+                continue;
+            }
+            const data = await res.json();
+            console.log('Resposta bruta de', url, data);
+
+            // espera array; adapta se backend retornar objeto com chave
+            let rawPedidos = Array.isArray(data) ? data : (Array.isArray(data.rows) ? data.rows : (Array.isArray(data.pedidos) ? data.pedidos : []));
+            // mapeia para formato frontend com extração robusta de itens
+            pedidos = rawPedidos.map(p => ({
+                id: p.id_pedido ?? p.id ?? p.idPedido ?? String(p.id ?? ''),
+                data: p.data_hora ?? p.data ?? p.created_at ?? p.createdAt ?? '',
+                valor: (typeof p.valor_total !== 'undefined') ? `R$${Number(p.valor_total).toFixed(2)}` : (p.valor || p.total || ''),
+                status: p.status ? p.status.toString().toLowerCase() : (p.estado ?? ''),
+                itens: extractItems(p)
+            }));
+
+            console.log('Pedidos normalizados:', pedidos);
+            break;
+        } catch (err) {
+            console.error('Erro ao buscar pedidos de', url, err);
+        }
     }
+
+    if (!pedidos) {
+        container.innerHTML = '<p style="text-align:center; padding:20px;">Não foi possível carregar pedidos. Tente novamente mais tarde.</p>';
+        return;
+    }
+
+    // Limpa e renderiza
+    container.innerHTML = '';
+    if (pedidos.length === 0) {
+        container.innerHTML = '<p style="text-align:center; padding:20px;">Nenhum pedido encontrado.</p>';
+        return;
+    }
+
+    pedidos.forEach(pedido => {
+        const card = criarCardPedido(pedido);
+        container.appendChild(card);
+    });
+
+    adicionarEventListeners();
 }
+
+// Inicialização
+document.addEventListener('DOMContentLoaded', () => {
+    carregarPedidosDoServidor();
+});

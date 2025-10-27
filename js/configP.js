@@ -1,7 +1,7 @@
 // config.js - Configurações globais do frontend
 
 const AppConfig = {
-    API_BASE_URL: 'http://localhost:3001/auth', // URL base da API (ajuste conforme necessário)
+    API_BASE_URL: 'http://localhost:3001', // URL base da API (ajuste conforme necessário)
     
     // Configurações de autenticação
     AUTH: {

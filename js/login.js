@@ -110,10 +110,10 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Define redirecionamentos baseados na role
         const redirectPaths = {
-            'Garçom': '/index.html',
-            'Admin': '/index.html',
-            'Cozinha': '/pedidos.html',
-            'Caixa': '/pedidos.html',
+            'Garçom': '/ComandaWeb/index.html',
+            'Admin': '/ComandaWeb/index.html',
+            'Cozinha': '/ComandaWeb/pedidos.html',
+            'Caixa': '/ComandaWeb/pedidos.html',
         };
 
         const defaultPath = '/dashboard.html';

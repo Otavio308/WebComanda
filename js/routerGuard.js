@@ -9,7 +9,7 @@ class RouteGuard {
         document.addEventListener('DOMContentLoaded', function() {
             // Verifica se está autenticado
             if (!AuthService.isAuthenticated()) {
-                window.location.href = '/login.html';
+                window.location.href = '/Login.html';
                 return;
             }
 
@@ -50,7 +50,7 @@ class RouteGuard {
         const allRoutes = {
             '/pedidos.html': ['Caixa', 'Admin'],
             '/index.html': ['Garçom', 'Admin'],
-            '/dashboard-cozinha.html': ['Cozinha', 'Admin'],
+            '/pedidos.html': ['Cozinha', 'Admin'],
         };
 
         const allowedRoutes = {};

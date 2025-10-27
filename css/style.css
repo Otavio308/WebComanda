@@ -255,7 +255,7 @@ body, html {
     border-radius: var(--border-radius);
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
     padding: 10px;
-    width: 250px; 
+    max-width: 250px; 
     position: absolute; 
     place-items: center;
 }
@@ -707,4 +707,24 @@ body, html {
         max-height: 250px;
         min-height: 200px;
     }
+}
+
+/* NOVO: Estilos para informações do usuário no menu lateral */
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.user-info i {
+    font-size: 1.2em;
+    color: var(--accent-color);
+}
+
+#user-name {
+    color: #fff;
+    font-size: 1em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }

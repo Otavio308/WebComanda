@@ -12,8 +12,10 @@
     <div class="main-container">
         <aside class="off-canvas-menu" id="off-canvas-menu">
             <div class="sidebar-header">
-                <i class="fas fa-user-circle profile-icon"></i>
-                <span class="user-name" id="user-name">Garçom 123</span>
+                <div class="user-info">
+                    <i class="fas fa-user"></i>
+                    <span id="user-name">Carregando...</span>
+                </div>
             </div>
             <div class="sidebar-links">
                 <button class="menu-link" id="btn-mesa-menu">
@@ -25,11 +27,9 @@
                     Pedidos Ativos
                 </a>
             </div>
-            <button class="logout-link" id="btn-logout">
-                <a href = "Login.html" class="menu-link">
+            <button class="logout-link menu-link" id="btn-logout" type="button">
                 <i class="fas fa-arrow-left menu-icon"></i>
                 Sair da conta
-                </a>
             </button>
         </aside>
         
@@ -121,6 +121,56 @@
         </div>
     </div>
 
+    <!-- Adiciona config + AuthService (necessário para o botão de logout funcionar) -->
+    <script src="js/configP.js"></script>
+    <script src="js/auth.js"></script>
     <script src="js/script.js"></script>
+
+    <script>
+        // Arrow function nomeada "SairDaConta" que executa o logout e redireciona ao login
+        const SairDaConta = () => {
+            // Se AuthService estiver disponível use a função centralizada
+            if (window.AuthService && typeof window.AuthService.logout === 'function') {
+                window.AuthService.logout();
+                return;
+            }
+
+            // Fallback: remove dados de autenticação e redireciona
+            try {
+                localStorage.removeItem('auth_token');
+                localStorage.removeItem('user_data');
+                localStorage.removeItem('login_time');
+            } catch (e) { /* ignore */ }
+            window.location.href = '/ComandaWeb/Login.html';
+        };
+        // Torna disponível globalmente caso precise chamar de outros scripts
+        window.SairDaConta = SairDaConta;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Atualiza o nome do usuário no menu
+            const updateUserName = () => {
+                const userData = AuthService.getUserData();
+                const userNameElement = document.getElementById('user-name');
+                
+                if (userData && userData.name) {
+                    userNameElement.textContent = userData.name;
+                } else {
+                    userNameElement.textContent = 'Usuário';
+                }
+            };
+
+            // Atualiza o nome assim que a página carrega
+            updateUserName();
+
+            // Associa o botão ao SairDaConta
+            const btnLogout = document.getElementById('btn-logout');
+            if (btnLogout) {
+                btnLogout.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    AuthService.logout();
+                });
+            }
+        });
+    </script>
 </body>
 </html>
