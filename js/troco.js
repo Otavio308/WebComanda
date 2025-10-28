@@ -1,3 +1,22 @@
+// ⭐ ADICIONE ESTA FUNÇÃO DE DEBUG TEMPORÁRIA NO INÍCIO DO ARQUIVO
+function debugLocalStorage() {
+    console.log('=== DEBUG LOCALSTORAGE ===');
+    console.log('Todas as chaves:', Object.keys(localStorage));
+    
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        const value = localStorage.getItem(key);
+        console.log(`${key}:`, value);
+    }
+    
+    console.log('AuthService existe?', !!window.AuthService);
+    if (window.AuthService) {
+        console.log('AuthService.getUserData:', window.AuthService.getUserData?.());
+        console.log('AuthService.getToken:', window.AuthService.getToken?.());
+    }
+    console.log('=========================');
+}
+
 // Dados do pedido (vindos do localStorage)
 let pedido = null;
 
@@ -7,6 +26,8 @@ let trocoValorElement = null;
 
 // Inicialização da página
 document.addEventListener('DOMContentLoaded', function() {
+    debugLocalStorage(); // ⭐ CHAMA O DEBUG
+    
     // Inicializa elementos
     valorRecebidoInput = document.getElementById('valor-recebido');
     trocoValorElement = document.getElementById('troco-valor');
@@ -140,40 +161,102 @@ function getNormalizedApiBase() {
     return raw.replace(/\/auth(?:\/.*)?$/i, '').replace(/\/+$/, '');
 }
 
-function getToken() {
-    if (window.AuthService?.getToken) return AuthService.getToken();
-    return localStorage.getItem('auth_token');
-}
-
+// Busca o role do usuário
 function getUserRole() {
     try {
-        const u = window.AuthService?.getUserData?.() || {};
-        return (u.role || u.perfil || '')
-            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-            .toLowerCase();
-    } catch { return ''; }
+        // ⭐ BUSCA DE userData NO LOCALSTORAGE (onde está o role!)
+        const userDataStr = localStorage.getItem('userData');
+        console.log('userData string:', userDataStr); // ⭐ DEBUG
+        
+        if (userDataStr) {
+            try {
+                const userData = JSON.parse(userDataStr);
+                console.log('userData parseado:', userData); // ⭐ DEBUG
+                
+                if (userData.role) {
+                    const role = userData.role
+                        .normalize('NFD')
+                        .replace(/[\u0300-\u036f]/g, '')
+                        .toLowerCase();
+                    console.log('Role encontrado no userData:', role);
+                    return role;
+                }
+            } catch (e) {
+                console.error('Erro ao parsear userData:', e);
+            }
+        }
+        
+        // Tenta buscar do AuthService
+        const authUserData = window.AuthService?.getUserData?.();
+        console.log('AuthService userData:', authUserData); // ⭐ DEBUG
+        
+        if (authUserData?.role) {
+            const role = authUserData.role
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .toLowerCase();
+            console.log('Role encontrado no AuthService:', role);
+            return role;
+        }
+
+        // ⭐ Busca do token (authToken, não auth_token)
+        const token = localStorage.getItem('authToken') || localStorage.getItem('auth_token');
+        console.log('Token encontrado:', !!token); // ⭐ DEBUG
+        
+        if (token) {
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                console.log('Token payload:', payload); // ⭐ DEBUG
+                
+                if (payload.role) {
+                    const role = payload.role
+                        .normalize('NFD')
+                        .replace(/[\u0300-\u036f]/g, '')
+                        .toLowerCase();
+                    console.log('Role encontrado no token:', role);
+                    return role;
+                }
+            } catch (e) {
+                console.error('Erro ao decodificar token:', e);
+            }
+        }
+
+        console.warn('Role não encontrado em nenhuma fonte');
+        return '';
+    } catch (error) {
+        console.error('Erro ao obter role:', error);
+        return '';
+    }
 }
 
-// Conclui o pedido (faz pagamento no backend)
-async function concluirPedido() {
+function getToken() {
+    if (window.AuthService?.getToken) return AuthService.getToken();
+    // ⭐ Busca authToken (não auth_token)
+    return localStorage.getItem('authToken') || localStorage.getItem('auth_token');
+}
+
+// Conclui o pedido (faz pagamento no backend) - ⭐ AGORA É SÍNCRONA
+function concluirPedido() {
     if (!pedido) return;
 
     const valorRecebido = parseFloat(valorRecebidoInput.value) || 0;
     const valorTotal = Number(pedido.valorTotal || 0);
     const troco = valorRecebido - valorTotal;
 
-    // Apenas Caixa pode pagar
+    // ⭐ Busca role (agora é síncrona como em resumoPedidos.js)
     const role = getUserRole();
-    if (role !== 'caixa') {
-        alert('Apenas o Caixa pode concluir o pagamento.');
+    console.log('Role detectado:', role); // ⭐ DEBUG
+
+    if (role !== 'caixa' && role !== 'admin') {
+        alert(`Apenas o Caixa pode concluir o pagamento. (Role detectado: "${role}")`);
         return;
     }
 
-    // Método de pagamento (se existir select na página; senão usa "dinheiro")
+    // Método de pagamento
     const metodoSel = document.getElementById('metodo-pagamento');
     const metodo = (metodoSel && metodoSel.value) ? metodoSel.value : 'dinheiro';
 
-    // Validações básicas
+    // Validações
     if (valorRecebido <= 0) {
         alert('Por favor, informe o valor recebido!');
         valorRecebidoInput.focus();
@@ -188,7 +271,12 @@ async function concluirPedido() {
         }
     }
 
-    // Chama backend: POST /sistema/pagamentos (fallback /pagamentos)
+    // ⭐ Chama função assíncrona separada
+    processarPagamento(valorRecebido, metodo, troco);
+}
+
+// ⭐ FUNÇÃO ASSÍNCRONA SEPARADA PARA PROCESSAR O PAGAMENTO
+async function processarPagamento(valorRecebido, metodo, troco) {
     const apiBase = getNormalizedApiBase();
     const token = getToken();
     if (!token) {
@@ -200,7 +288,6 @@ async function concluirPedido() {
         id_pedido: pedido.id,
         valor_pago: valorRecebido,
         metodo
-        // troco é calculado no backend; não é obrigatório enviar
     };
 
     const urls = [
@@ -208,7 +295,6 @@ async function concluirPedido() {
         `${apiBase}/pagamentos`
     ];
 
-    // Desabilita botão concluir se existir
     const btnConcluir = document.getElementById('btn-concluir');
     if (btnConcluir) {
         btnConcluir.disabled = true;
@@ -238,7 +324,6 @@ async function concluirPedido() {
                 sucesso = true;
                 break;
             } else {
-                // Tenta ler mensagem de erro
                 let msg = 'Erro ao processar pagamento.';
                 try {
                     const data = await res.json();
@@ -248,34 +333,28 @@ async function concluirPedido() {
                 }
                 console.warn('Falha no pagamento:', msg);
                 alert(msg.substring(0, 300));
-                break; // para se recebeu erro compreensível do backend
+                break;
             }
         } catch (e) {
             console.warn('Erro na requisição de pagamento:', e);
-            // tenta próxima URL
         }
     }
 
-    // Reabilita botão
     if (btnConcluir) {
         btnConcluir.disabled = false;
         btnConcluir.textContent = 'Concluir';
     }
 
-    if (!sucesso) {
-        return; // já exibiu alerta acima
-    }
+    if (!sucesso) return;
 
-    // Sucesso: mostra confirmação com troco calculado
     const trocoFinal = typeof respostaBackend?.pagamento?.troco === 'number'
         ? respostaBackend.pagamento.troco
         : troco;
 
     alert(`Pagamento concluído!\nPedido: ${pedido.id}\nTroco: R$${Number(trocoFinal).toFixed(2)}`);
 
-    // Limpa seleção e volta para listagem
     localStorage.removeItem('pedidoSelecionado');
-    window.location.href = 'pedidos.html'; // ou 'index.html' se preferir
+    window.location.href = 'pedidos.html';
 }
 
 // Volta para a tela anterior

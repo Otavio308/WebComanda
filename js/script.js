@@ -3,6 +3,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Produtos serão carregados do backend
     let products = [];
 
+    // ⭐ Declara editingPedidoId
+    let editingPedidoId = localStorage.getItem('editingPedidoId');
+
     // Função para carregar cardápio do backend
     async function loadCardapioFromServer() {
         try {
@@ -478,91 +481,164 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     });
 
-    // Botão Fazer Pedido (agora envia para o backend) - versão com diagnóstico e fallback de rota
-    fazerPedidoButton.addEventListener('click', async () => {
-        const mesa = localStorage.getItem(LOCAL_STORAGE_KEY_MESA);
+    // Detecta modo edição e informa na UI
+    if (editingPedidoId) {
+        console.log(`Editando itens do pedido #${editingPedidoId}`);
+        const btn = document.querySelector('#btn-fazer-pedido, #fazer-pedido, #fazer-pedido-button, [data-action="fazer-pedido"]') || fazerPedidoButton;
+        if (btn) btn.textContent = 'Adicionar ao pedido';
+    }
 
-        if (!mesa) {
-            alert("Por favor, selecione o número da mesa antes de fazer o pedido.");
-            openMesaModal();
+    // Botão Fazer Pedido (criar OU atualizar)
+    fazerPedidoButton.addEventListener('click', async () => {
+        // ⭐ Recarrega editingPedidoId do localStorage no momento do clique
+        editingPedidoId = localStorage.getItem('editingPedidoId');
+        
+        const token = getToken();
+        if (!token) {
+            alert('Sessão expirada. Faça login novamente.');
+            window.location.href = '/ComandaWeb/Login.html';
             return;
         }
+
         if (comandaItems.length === 0) {
             alert("Adicione itens à comanda.");
             return;
         }
 
-        const itensPayload = comandaItems.map(i => ({
+        const novos_itens = comandaItems.map(i => ({
             id_item: i.id,
             quantidade: i.quantity,
             observacao: i.notes || ''
         }));
 
-        const apiBase = (window.AppConfig && AppConfig.API_BASE_URL) ? AppConfig.API_BASE_URL.replace(/\/$/, '') : 'http://localhost:3001';
-        const candidateUrls = [
-            `${apiBase}/sistema/pedidos`,
-            `${apiBase}/pedidos`
-        ];
-
-        const token = (window.AuthService && typeof AuthService.getToken === 'function')
-            ? AuthService.getToken()
-            : localStorage.getItem('auth_token');
-
-        if (!token) {
-            window.location.href = '/ComandaWeb/Login.html';
-            return;
-        }
-
+        const apiBase = getNormalizedApiBase();
         fazerPedidoButton.disabled = true;
-        let lastError = null;
 
-        for (const url of candidateUrls) {
-            try {
-                console.log('Tentando enviar pedido para:', url);
-                const res = await fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({ id_mesa: parseInt(mesa, 10), itens: itensPayload })
-                });
+        try {
+            if (editingPedidoId) {
+                // ⭐ Busca o pedido atual para verificar o status
+                const pedidoAtualStr = localStorage.getItem('pedidoSelecionado');
+                let pedidoAtual = null;
+                try {
+                    pedidoAtual = JSON.parse(pedidoAtualStr);
+                } catch {}
 
-                if (res.ok) {
-                    const data = await res.json();
-                    alert(data.message || `Pedido da Mesa ${mesa} enviado com sucesso!`);
-                    comandaItems = [];
-                    renderComanda();
-                    lastError = null;
-                    break;
+                const urls = [
+                    `${apiBase}/sistema/pedidos/${editingPedidoId}/itens`,
+                    `${apiBase}/pedidos/${editingPedidoId}/itens`
+                ];
+                let ok = false, lastErr = '';
+
+                for (const url of urls) {
+                    try {
+                        const res = await fetch(url, {
+                            method: 'PATCH',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({ novos_itens })
+                        });
+                        if (res.ok) {
+                            const data = await res.json().catch(() => ({}));
+                            
+                            // ⭐ Se o pedido estava "entregue", volta para "em_preparo"
+                            if (pedidoAtual?.status === 'entregue') {
+                                const statusUrls = [
+                                    `${apiBase}/sistema/pedidos/${editingPedidoId}/status`,
+                                    `${apiBase}/pedidos/${editingPedidoId}/status`
+                                ];
+                                
+                                for (const statusUrl of statusUrls) {
+                                    try {
+                                        const statusRes = await fetch(statusUrl, {
+                                            method: 'PATCH',
+                                            headers: {
+                                                'Content-Type': 'application/json',
+                                                'Authorization': `Bearer ${token}`
+                                            },
+                                            body: JSON.stringify({ status: 'em_preparo' })
+                                        });
+                                        if (statusRes.ok) {
+                                            console.log('Status alterado de entregue para em_preparo');
+                                            break;
+                                        }
+                                    } catch (e) {
+                                        console.warn('Erro ao alterar status:', e);
+                                    }
+                                }
+                            }
+                            
+                            alert(data.message || 'Itens adicionados ao pedido.');
+                            localStorage.removeItem('editingPedidoId');
+                            localStorage.setItem('pedidoSelecionado', JSON.stringify({ id: Number(editingPedidoId), itens: [] }));
+                            comandaItems = [];
+                            localStorage.setItem('comanda', JSON.stringify([]));
+                            window.location.href = 'resumoPedidos.html';
+                            ok = true;
+                            break;
+                        } else {
+                            lastErr = await res.text().catch(() => `HTTP ${res.status}`);
+                            if (res.status === 404) continue;
+                            break;
+                        }
+                    } catch (e) {
+                        lastErr = e.message;
+                    }
                 }
 
-                // se 404, tenta próximo candidate; para outros erros, tenta extrair corpo e lançar
-                const textoErro = await res.text().catch(() => '');
-                console.warn(`Resposta não OK (${res.status}) de ${url}:`, textoErro);
-                if (res.status === 404) {
-                    lastError = new Error(`404 from ${url}`);
-                    continue; // tenta próximo URL
-                } else {
-                    // tenta parse JSON para mensagem mais clara
-                    let errBody;
-                    try { errBody = JSON.parse(textoErro); } catch (e) { errBody = { message: textoErro }; }
-                    throw new Error(errBody.error || errBody.message || `Erro ao enviar pedido: ${res.status}`);
-                }
-            } catch (err) {
-                console.error('Erro ao tentar enviar para', url, err);
-                lastError = err;
-                // se for abort ou rede, não continuar a tentar? aqui continuamos para o próximo candidate
+                if (!ok) alert(`Falha ao atualizar itens do pedido: ${lastErr || 'Erro desconhecido'}`);
+                return;
             }
-        }
 
-        if (lastError) {
-            alert(`Falha ao enviar pedido: ${lastError.message}`);
-        }
+            // Fluxo de criação do pedido (sem edição)
+            const mesa = localStorage.getItem('comandaMesa');
+            if (!mesa) {
+                alert("Por favor, selecione o número da mesa antes de fazer o pedido.");
+                openMesaModal();
+                return;
+            }
 
-        fazerPedidoButton.disabled = false;
+            const itensPayload = novos_itens;
+            const createUrls = [
+                `${apiBase}/sistema/pedidos`,
+                `${apiBase}/pedidos`
+            ];
+
+            let created = false, lastErr = '';
+            for (const url of createUrls) {
+                try {
+                    const res = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ id_mesa: parseInt(mesa, 10), itens: itensPayload })
+                    });
+                    if (res.ok) {
+                        const data = await res.json().catch(() => ({}));
+                        alert(data.message || `Pedido da Mesa ${mesa} enviado com sucesso!`);
+                        comandaItems = [];
+                        localStorage.setItem('comanda', JSON.stringify([]));
+                        renderComanda();
+                        created = true;
+                        break;
+                    } else {
+                        lastErr = await res.text().catch(() => `HTTP ${res.status}`);
+                        if (res.status === 404) continue;
+                        break;
+                    }
+                } catch (e) {
+                    lastErr = e.message;
+                }
+            }
+            if (!created) alert(`Falha ao enviar pedido: ${lastErr || 'Erro desconhecido'}`);
+        } finally {
+            fazerPedidoButton.disabled = false;
+        }
     });
-    
+
     // Antes de inicializar filtros/visualização, carregue o cardápio do servidor
     await loadCardapioFromServer();
 
@@ -583,3 +659,13 @@ function getNormalizedApiBase() {
     // remove possível sufixo '/auth' e barras finais
     return raw.replace(/\/auth(?:\/.*)?$/i, '').replace(/\/+$/,'');
 }
+
+function getToken() {
+    if (window.AuthService?.getToken) return AuthService.getToken();
+    return localStorage.getItem('authToken') || localStorage.getItem('auth_token');
+}
+
+// REMOVA o bloco duplicado abaixo se existir no arquivo:
+// - const apiBase = getNormalizedApiBase();
+// - const editingPedidoId = localStorage.getItem('editingPedidoId');
+// - novo const fazerPedidoButton + addEventListener

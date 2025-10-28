@@ -1,5 +1,3 @@
-// Tela de pedidos — carrega do backend em vez de usar mocks
-
 // Helper: normaliza AppConfig.API_BASE_URL removendo sufixos indesejados (ex: /auth)
 function getNormalizedApiBase() {
     const raw = (window.AppConfig && AppConfig.API_BASE_URL) ? AppConfig.API_BASE_URL : 'http://localhost:3001';
@@ -127,12 +125,11 @@ function getUserRole() {
   } catch { return ''; }
 }
 
-async function patchPedidoStatus(pedidoId, frontStatus) {
+async function patchPedidoStatus(pedidoId, status) {
   const apiBase = getNormalizedApiBase();
   const token = getToken();
   if (!token) return false;
 
-  const statusDb = mapFrontStatusToDb(frontStatus);
   const urls = [
     `${apiBase}/sistema/pedidos/${pedidoId}/status`,
     `${apiBase}/pedidos/${pedidoId}/status`
@@ -146,7 +143,7 @@ async function patchPedidoStatus(pedidoId, frontStatus) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ status: statusDb })
+        body: JSON.stringify({ status }) // envia exatamente como está: em_preparo
       });
       if (res.ok) return true;
     } catch (_) {}
@@ -156,31 +153,26 @@ async function patchPedidoStatus(pedidoId, frontStatus) {
 
 // Ao abrir um pedido pela Cozinha/Admin, coloca em preparo no backend antes de redirecionar
 document.addEventListener('click', async (e) => {
-  const card = e.target.closest('[data-pedido-id]');
+  const card = e.target.closest('.pedido-card');
   if (!card) return;
 
   const role = getUserRole();
   const pedidoId = card.getAttribute('data-pedido-id');
 
   if (role === 'cozinha' || role === 'admin') {
-    await patchPedidoStatus(pedidoId, 'em_preparo'); // envia "em preparo" ao backend
+    await patchPedidoStatus(pedidoId, 'em_preparo'); // envia "em_preparo" exatamente
   }
 
-  // Recupera lista atual exibida e encontra o pedido
-  const container = document.querySelector('.pedidos-container');
-  const cardPedido = container.querySelector(`.pedido-card[data-pedido-id="${pedidoId}"]`);
-  if (!cardPedido) return;
-
-  // Monta objeto para resumo a partir do DOM (evita re-fetch); caso precise, pode buscar endpoint /pedidos/:id
+  // Monta objeto para resumo
   const pedido = {
       id: pedidoId,
-      data: cardPedido.querySelector('.pedido-data')?.textContent || '',
-      valor: cardPedido.querySelector('.pedido-valor')?.textContent || '',
-      status: cardPedido.querySelector('.pedido-status')?.textContent.toLowerCase() || '',
+      data: card.querySelector('.pedido-data')?.textContent || '',
+      valor: card.querySelector('.pedido-valor')?.textContent || '',
+      status: card.querySelector('.pedido-status')?.textContent.toLowerCase() || '',
       itens: []
   };
 
-  const itensEls = cardPedido.querySelectorAll('.item-tag');
+  const itensEls = card.querySelectorAll('.item-tag');
   itensEls.forEach(el => {
       const quantidade = el.querySelector('.item-quantidade')?.textContent.replace('x','')?.trim() || '1';
       const nome = el.childNodes && el.childNodes.length > 1 ? el.childNodes[1].textContent.trim() : el.textContent.trim();
@@ -192,8 +184,7 @@ document.addEventListener('click', async (e) => {
       });
   });
 
-  // Salve o objeto pedidoSelecionado no localStorage aqui, se já não faz
-  // localStorage.setItem('pedidoSelecionado', JSON.stringify(pedidoSelecionado));
+  localStorage.setItem('pedidoSelecionado', JSON.stringify(pedido));
   window.location.href = 'resumoPedidos.html';
 });
 
