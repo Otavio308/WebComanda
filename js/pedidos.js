@@ -151,6 +151,27 @@ async function patchPedidoStatus(pedidoId, status) {
   return false;
 }
 
+async function fetchPedidoStatus(pedidoId) {
+  const apiBase = getNormalizedApiBase();
+  const token = (window.AuthService?.getToken) ? AuthService.getToken() : (localStorage.getItem('authToken') || localStorage.getItem('auth_token'));
+  if (!token) return '';
+
+  const urls = [
+    `${apiBase}/sistema/pedidos/${pedidoId}`,
+    `${apiBase}/pedidos/${pedidoId}`
+  ];
+  for (const url of urls) {
+    try {
+      const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+      if (!res.ok) continue;
+      const data = await res.json();
+      const p = data.pedido || data;
+      return String(p.status || '').toLowerCase();
+    } catch {}
+  }
+  return '';
+}
+
 // Ao abrir um pedido pela Cozinha/Admin, coloca em preparo no backend antes de redirecionar
 document.addEventListener('click', async (e) => {
   const card = e.target.closest('.pedido-card');
@@ -159,8 +180,12 @@ document.addEventListener('click', async (e) => {
   const role = getUserRole();
   const pedidoId = card.getAttribute('data-pedido-id');
 
-  if (role === 'cozinha' || role === 'admin') {
-    await patchPedidoStatus(pedidoId, 'em_preparo'); // envia "em_preparo" exatamente
+  // Verifica status real no servidor
+  const stSrv = await fetchPedidoStatus(pedidoId);
+  const bloqueado = stSrv === 'cancelado' || stSrv === 'finalizado';
+
+  if (!bloqueado && (role === 'cozinha' || role === 'admin')) {
+    await patchPedidoStatus(pedidoId, 'em_preparo');
   }
 
   // Monta objeto para resumo

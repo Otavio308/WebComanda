@@ -82,14 +82,50 @@ function getUserRole() {
     return 'cozinha';
 }
 
+// ⭐ Helper: pedido bloqueado?
+function isPedidoBloqueado() {
+    const st = (pedido?.status || '').toLowerCase();
+    return st === 'cancelado' || st === 'finalizado';
+}
+
+async function fetchPedidoStatusFromServer(id) {
+    const apiBase = getNormalizedApiBase();
+    const token = getToken();
+    if (!token || !id) return (pedido?.status || '').toLowerCase();
+
+    const urls = [
+        `${apiBase}/sistema/pedidos/${id}`,
+        `${apiBase}/pedidos/${id}`
+    ];
+    for (const url of urls) {
+        try {
+            const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+            if (!res.ok) continue;
+            const data = await res.json();
+            const p = data.pedido || data;
+            const st = String(p.status || '').toLowerCase();
+            return st || (pedido?.status || '').toLowerCase();
+        } catch {}
+    }
+    return (pedido?.status || '').toLowerCase();
+}
+
+async function isPedidoBloqueadoServidor() {
+    const st = await fetchPedidoStatusFromServer(pedido?.id);
+    return st === 'finalizado' || st === 'cancelado';
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     usuarioLogado.role = getUserRole();
     console.log('Role do usuário logado:', usuarioLogado.role);
 
     await carregarPedido();
 
-    // ⭐ Se for cozinha/admin e o pedido está "aberto", muda para "em_preparo"
-    if ((usuarioLogado.role === 'cozinha' || usuarioLogado.role === 'admin') && 
+    // ⭐ Sempre atualiza status atual do servidor antes de qualquer automação
+    const bloqueadoSrv = await isPedidoBloqueadoServidor();
+
+    if (!bloqueadoSrv &&
+        (usuarioLogado.role === 'cozinha' || usuarioLogado.role === 'admin') &&
         pedido?.status === 'aberto') {
         await atualizarStatusPedidoNoBackend('em_preparo');
     }
@@ -126,6 +162,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const btnAddItem = document.getElementById('btn-adicionar-item');
     if (btnAddItem) {
       btnAddItem.addEventListener('click', () => {
+        if (isPedidoBloqueado()) {
+          mostrarAlerta('Este pedido está finalizado/cancelado e não pode receber novos itens.');
+          return;
+        }
         const role = (usuarioLogado.role || '').toLowerCase();
         if (role !== 'garcom' && role !== 'admin') {
           mostrarAlerta('Você não tem permissão para adicionar itens.');
@@ -135,7 +175,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           mostrarAlerta('Pedido não encontrado.');
           return;
         }
-        localStorage.setItem('editingPedidoId', String(pedido.id)); // base: id do pedido
+        localStorage.setItem('editingPedidoId', String(pedido.id));
         window.location.href = 'index.html';
       });
     }
@@ -198,10 +238,13 @@ async function atualizarPedidoDoServidor(pedidoId) {
                 id: p.id_pedido ?? p.id,
                 data: p.data_hora ?? p.data ?? new Date().toISOString(),
                 status: String(p.status || 'aberto').toLowerCase(),
+                // ⭐ mesa do pedido (tenta vários campos)
+                mesa: p.id_mesa ?? p.mesa ?? p.numero_mesa ?? p.mesa_numero ?? null,
                 valor: formatCurrency(p.valor_total ?? p.total ?? 0),
                 valorTotal: formatCurrency(p.valor_total ?? p.total ?? 0),
                 itens: itens.map(it => ({
                     id: it.id_pedido_item ?? it.id ?? it.id_item,
+                    id_item: it.id_item ?? null,
                     nome: it.nome_item ?? it.nome ?? it.descricao ?? 'Item',
                     quantidade: it.quantidade ?? it.qtd ?? 1,
                     observacao: it.observacao || '',
@@ -219,27 +262,47 @@ async function atualizarPedidoDoServidor(pedidoId) {
     }
 }
 
+function ensureMesaInfoElement() {
+    // Cria dinamicamente a linha "Mesa" no bloco de informações, se não existir
+    const infoContainer = document.querySelector('.pedido-info');
+    let elMesa = document.getElementById('pedido-mesa');
+    if (!elMesa && infoContainer) {
+        const wrap = document.createElement('div');
+        wrap.className = 'info-item';
+        wrap.innerHTML = `
+            <span class="info-label">Mesa</span>
+            <span id="pedido-mesa" class="info-value">—</span>
+        `;
+        infoContainer.prepend(wrap); // adiciona no topo; mude para append se preferir no final
+        elMesa = wrap.querySelector('#pedido-mesa');
+    }
+    return elMesa;
+}
+
 function renderPedidoHeader() {
     if (!pedido) return;
-    
-    // ⭐ Atualiza o título do header
+
     const headerH1 = document.querySelector('.header h1');
-    if (headerH1) {
-        headerH1.textContent = `#${pedido.id}`;
-    }
-    
+    if (headerH1) headerH1.textContent = `#${pedido.id}`;
+
     const elNum = document.getElementById('pedido-numero');
     const elData = document.getElementById('pedido-data');
     const elStatus = document.getElementById('pedido-status');
     const elTotal = document.getElementById('pedido-total');
 
+    // ⭐ garante o campo de mesa na UI
+    const elMesa = ensureMesaInfoElement();
+
     if (elNum) elNum.textContent = `#${pedido.id}`;
     if (elData) elData.textContent = pedido.data ? formatarData(pedido.data) : '—';
     if (elStatus) {
-        elStatus.textContent = pedido.status ? (pedido.status.charAt(0).toUpperCase() + pedido.status.slice(1).replace('_', ' ')) : '—';
+        elStatus.textContent = pedido.status
+            ? (pedido.status.charAt(0).toUpperCase() + pedido.status.slice(1).replace('_', ' '))
+            : '—';
         elStatus.className = `info-value status-pedido ${pedido.status.replace('_', '-')}`;
     }
     if (elTotal) elTotal.textContent = pedido.valorTotal || pedido.valor || '—';
+    if (elMesa) elMesa.textContent = pedido.mesa ? `Mesa ${pedido.mesa}` : '—';
 }
 
 function configurarPermissoes() {
@@ -248,54 +311,38 @@ function configurarPermissoes() {
     const btnAddItem = document.getElementById('btn-adicionar-item');
     const btnCancelar = document.getElementById('btn-cancelar-pedido');
 
-    if (btnTroco) {
-        btnTroco.disabled = true;
-        btnTroco.style.display = 'none';
-    }
-    if (btnAddItem) {
-        btnAddItem.disabled = true;
-        btnAddItem.style.display = 'none';
-    }
-    if (btnCancelar) {
-        btnCancelar.disabled = true;
-        btnCancelar.style.display = 'none';
+    // bloqueio total para finalizado/cancelado
+    if (isPedidoBloqueado()) {
+        if (btnTroco) { btnTroco.disabled = true; btnTroco.style.display = 'none'; }
+        if (btnAddItem) { btnAddItem.disabled = true; btnAddItem.style.display = 'none'; }
+        if (btnCancelar) { btnCancelar.disabled = true; btnCancelar.style.display = 'none'; }
+        return;
     }
 
-    // ⭐ Libera troco quando o pedido estiver "entregue"
+    // padrão: tudo oculto
+    if (btnTroco) { btnTroco.disabled = true; btnTroco.style.display = 'none'; }
+    if (btnAddItem) { btnAddItem.disabled = true; btnAddItem.style.display = 'none'; }
+    if (btnCancelar) { btnCancelar.disabled = true; btnCancelar.style.display = 'none'; }
+
     const pedidoEntregue = pedido?.status === 'entregue';
+    const pedidoAberto = pedido?.status === 'aberto';
 
     switch (role) {
         case 'admin':
-            if (btnAddItem) {
-                btnAddItem.disabled = false;
-                btnAddItem.style.display = 'block';
-            }
-            if (btnCancelar) {
-                btnCancelar.disabled = false;
-                btnCancelar.style.display = 'block';
-            }
-            if (btnTroco && pedidoEntregue) {
-                btnTroco.disabled = false;
-                btnTroco.style.display = 'block';
-            }
+            if (btnAddItem) { btnAddItem.disabled = false; btnAddItem.style.display = 'block'; }
+            // ⭐ Admin só vê "Cancelar" se estiver ABERTO
+            if (btnCancelar && pedidoAberto) { btnCancelar.disabled = false; btnCancelar.style.display = 'block'; }
+            if (btnTroco && pedidoEntregue) { btnTroco.disabled = false; btnTroco.style.display = 'block'; }
             break;
 
         case 'garcom':
-            if (btnAddItem) {
-                btnAddItem.disabled = false;
-                btnAddItem.style.display = 'block';
-            }
-            if (btnCancelar) {
-                btnCancelar.disabled = false;
-                btnCancelar.style.display = 'block';
-            }
+            if (btnAddItem) { btnAddItem.disabled = false; btnAddItem.style.display = 'block'; }
+            // ⭐ Garçom só vê "Cancelar" se estiver ABERTO
+            if (btnCancelar && pedidoAberto) { btnCancelar.disabled = false; btnCancelar.style.display = 'block'; }
             break;
 
         case 'caixa':
-            if (btnTroco && pedidoEntregue) {
-                btnTroco.disabled = false;
-                btnTroco.style.display = 'block';
-            }
+            if (btnTroco && pedidoEntregue) { btnTroco.disabled = false; btnTroco.style.display = 'block'; }
             break;
     }
 }
@@ -308,8 +355,10 @@ function carregarItens() {
     if (!pedido || !Array.isArray(pedido.itens)) return;
 
     const role = (usuarioLogado.role || '').toLowerCase();
-    const podeAlterarStatus = (role === 'cozinha' || role === 'admin');
-    const mostrarIconeStatus = (role === 'cozinha' || role === 'admin'); // ⭐ só cozinha e admin veem os ícones
+    const podeAlterarStatus = (role === 'cozinha' || role === 'admin') && !isPedidoBloqueado();
+    const mostrarIconeStatus = (role === 'cozinha' || role === 'admin') && !isPedidoBloqueado();
+    // Somente Garçom pode remover (alinha com o backend)
+    const mostrarLixeira = (role === 'garcom') && !isPedidoBloqueado() && pedido?.status === 'aberto';
 
     pedido.itens.forEach(item => {
         const itemElement = document.createElement('div');
@@ -323,13 +372,17 @@ function carregarItens() {
         const precoUnit = Number(item.precoUnitario ?? 0);
         const precoTotal = Number(item.precoTotal ?? (precoUnit * (item.quantidade ?? 1)));
 
-        // ⭐ Monta o HTML do ícone de status apenas se permitido
         const statusHTML = mostrarIconeStatus ? `
             <div class="item-status ${statusClass}" data-item-id="${item.id}"
                  title="${isPronto ? 'Pronto' : 'Pendente'}"
                  style="cursor: ${podeAlterarStatus && !isPronto ? 'pointer' : 'default'};">
                 ${statusIcon}
             </div>
+        ` : '';
+
+        const deleteHTML = mostrarLixeira && item.status !== 'pronto' ? `
+            <button class="item-remove" data-item-id="${item.id}" title="Remover item" aria-label="Remover item"
+                    style="background:none;border:none;cursor:pointer;font-size:1.1rem;line-height:1;">🗑️</button>
         ` : '';
 
         itemElement.innerHTML = `
@@ -340,13 +393,23 @@ function carregarItens() {
             </div>
             <div class="item-valor">${formatCurrency(precoTotal)}</div>
             ${statusHTML}
+            ${deleteHTML}
         `;
 
-        // ⭐ Adiciona listener apenas se mostrar ícone e puder alterar
         if (mostrarIconeStatus) {
             const statusEl = itemElement.querySelector('.item-status');
             if (statusEl && podeAlterarStatus && !isPronto) {
                 statusEl.addEventListener('click', () => selecionarItem(item.id));
+            }
+        }
+
+        if (mostrarLixeira) {
+            const delBtn = itemElement.querySelector('.item-remove');
+            if (delBtn) {
+                delBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    removerItemPedido(String(item.id));
+                });
             }
         }
 
@@ -355,6 +418,7 @@ function carregarItens() {
 }
 
 function selecionarItem(itemId) {
+    if (isPedidoBloqueado()) return;
     const role = (usuarioLogado.role || '').toLowerCase();
     if (role !== 'cozinha' && role !== 'admin') return;
 
@@ -381,16 +445,22 @@ function fecharModal() {
 
 // ⭐ ATUALIZA STATUS DO ITEM NO FRONTEND E STATUS DO PEDIDO NO BACKEND
 async function confirmarAcao() {
+    // Revalida no servidor
+    if (await isPedidoBloqueadoServidor()) {
+        mostrarAlerta('Este pedido está finalizado/cancelado e não pode ter itens alterados.');
+        return;
+    }
+
     if (!itemSelecionado) return;
 
     const idx = pedido.itens.findIndex(it => String(it.id) === String(itemSelecionado.id));
     if (idx !== -1) {
-        pedido.itens[idx].status = 'pronto'; // ⭐ mudou
+        pedido.itens[idx].status = 'pronto';
     }
 
     const todosProntos = (pedido.itens || []).every(it => it.status === 'pronto');
     if (todosProntos) {
-        await atualizarStatusPedidoNoBackend('entregue'); // ⭐ envia "entregue" ao backend
+        await atualizarStatusPedidoNoBackend('entregue');
     }
 
     salvarPedidoNoLocalStorage();
@@ -399,8 +469,13 @@ async function confirmarAcao() {
     configurarPermissoes();
 }
 
-// ⭐ ATUALIZA STATUS DO PEDIDO NO BACKEND
 async function atualizarStatusPedidoNoBackend(novoStatus) {
+    // Revalida no servidor
+    if (await isPedidoBloqueadoServidor()) {
+        mostrarAlerta('Este pedido está finalizado/cancelado e não pode ter o status alterado.');
+        return false;
+    }
+
     const apiBase = getNormalizedApiBase();
     const token = getToken();
     if (!token || !pedido?.id) return false;
@@ -433,7 +508,7 @@ async function atualizarStatusPedidoNoBackend(novoStatus) {
                 salvarPedidoNoLocalStorage();
                 return true;
             }
-        } catch (_) {}
+        } catch {}
     }
     return false;
 }
@@ -441,6 +516,10 @@ async function atualizarStatusPedidoNoBackend(novoStatus) {
 // ========== AÇÕES DOS BOTÕES ==========
 
 function calcularTroco() {
+    if (isPedidoBloqueado()) {
+        mostrarAlerta('Este pedido está finalizado/cancelado. Não é possível calcular troco.');
+        return;
+    }
     const role = (usuarioLogado.role || '').toLowerCase();
     
     if (role !== 'caixa' && role !== 'admin') {
@@ -470,16 +549,23 @@ function adicionarItem() {
 }
 
 async function cancelarPedido() {
+    if (isPedidoBloqueado()) {
+        mostrarAlerta('Este pedido já está finalizado/cancelado.');
+        return;
+    }
+    // ⭐ só pode cancelar se estiver ABERTO
+    if ((pedido?.status || '').toLowerCase() !== 'aberto') {
+        mostrarAlerta('Só é possível cancelar pedidos em status "aberto".');
+        return;
+    }
+
     const role = (usuarioLogado.role || '').toLowerCase();
-    
     if (role !== 'garcom' && role !== 'admin') {
         mostrarAlerta('Você não tem permissão para cancelar pedidos.');
         return;
     }
     
-    if (!confirm('Tem certeza que deseja cancelar este pedido?')) {
-        return;
-    }
+    if (!confirm('Tem certeza que deseja cancelar este pedido?')) return;
     
     await atualizarStatusPedidoNoBackend('cancelado');
     alert('Pedido cancelado com sucesso.');
@@ -509,4 +595,90 @@ function salvarPedidoNoLocalStorage() {
     } catch (e) {
         console.warn('Erro ao salvar pedido no localStorage:', e);
     }
+}
+
+async function removerItemPedido(itemIdLocal) {
+    // Bloqueios
+    if (await isPedidoBloqueadoServidor()) {
+        mostrarAlerta('Este pedido está finalizado/cancelado e não pode ter itens removidos.');
+        return;
+    }
+
+    const role = (usuarioLogado.role || '').toLowerCase();
+    if (role !== 'garcom') { // backend autoriza apenas Garçom
+        mostrarAlerta('Você não tem permissão para remover itens.');
+        return;
+    }
+
+    if (pedido?.status !== 'aberto') {
+        mostrarAlerta('Só é possível remover itens quando o pedido está aberto.');
+        return;
+    }
+
+    const item = pedido.itens.find(it => String(it.id) === String(itemIdLocal));
+    if (!item) {
+        mostrarAlerta('Item não encontrado no pedido.');
+        return;
+    }
+    if (item.status === 'pronto') {
+        mostrarAlerta('Não é possível remover um item que já foi marcado como pronto.');
+        return;
+    }
+
+    // Precisamos do id do cardápio (id_item) para a rota do backend
+    let idItemCardapio = item.id_item ?? null;
+    if (!idItemCardapio) {
+        await atualizarPedidoDoServidor(pedido.id);
+        const refreshed = pedido.itens.find(it => String(it.id) === String(itemIdLocal));
+        idItemCardapio = refreshed?.id_item ?? null;
+    }
+    if (!idItemCardapio) {
+        mostrarAlerta('Não foi possível identificar o item do cardápio para remover.');
+        return;
+    }
+
+    if (!confirm('Remover este item do pedido?')) return;
+
+    const apiBase = getNormalizedApiBase();
+    const token = getToken();
+    if (!token) {
+        mostrarAlerta('Sessão expirada. Faça login novamente.');
+        return;
+    }
+
+    // Usa a rota do controller: DELETE /pedidos/:id/item/:id_item (singular)
+    const urls = [
+        `${apiBase}/sistema/pedidos/${pedido.id}/item/${idItemCardapio}`,
+        `${apiBase}/pedidos/${pedido.id}/item/${idItemCardapio}`
+    ];
+
+    let sucesso = false;
+    let msg = '';
+
+    for (const url of urls) {
+        try {
+            const res = await fetch(url, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) { sucesso = true; break; }
+            msg = await res.text().catch(() => `HTTP ${res.status}`);
+            if (res.status === 404) continue; // tenta a próxima URL
+            break;
+        } catch (e) {
+            msg = e.message;
+        }
+    }
+
+    if (!sucesso) {
+        console.warn('Falha ao remover item:', msg);
+        mostrarAlerta('Erro ao remover item do pedido.');
+        return;
+    }
+
+    await atualizarPedidoDoServidor(pedido.id);
+    renderPedidoHeader();
+    carregarItens();
+    configurarPermissoes();
+    mostrarAlerta('Item removido com sucesso.');
 }
